@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>個人運動訓練數據儀表板</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --bg: #f1f5f9;
+            --text: #1e293b;
+            --card-bg: #ffffff;
+            --header-dark: #1e293b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 10px;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--header-dark), #334155);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .header h1 { margin: 0; font-size: 20px; letter-spacing: 1px; }
+        .loading-text { margin-top: 8px; font-size: 13px; color: #cbd5e1; }
+
+        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        @media (min-width: 1024px) { .grid { grid-template-columns: 1fr 1fr; } }
+        
+        .chart-card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 380px; display: flex; flex-direction: column; }
+        .chart-container { flex: 1; width: 100%; min-height: 0; }
+        
+        h2 { font-size: 15px; margin: 0 0 10px; border-left: 4px solid var(--primary); padding-left: 10px; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
+        select { font-size: 12px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; }
+        
+        .chart-helper-text {
+            font-size: 11px;
+            color: #64748b;
+            margin-bottom: 5px;
+            background: #f8fafc;
+            padding: 5px;
+            border-radius: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 2px; }
+        .dot-green { background: #dcfce7; border: 1px solid #10b981; }
+        .dot-yellow { background: #fef9c3; border: 1px solid #f59e0b; }
+        .dot-red { background: #fee2e2; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>運動訓練數據儀表板</h1>
+        <div id="loadingStatus" class="loading-text">正在連線 Google Sheets...</div>
+    </div>
+
+    <div class="grid">
+        <div class="chart-card">
+            <h2>訓練負荷</h2>
+            <div class="chart-helper-text">
+                <span><span class="legend-dot dot-green"></span>0.8-1.3 最佳</span>
+                <span><span class="legend-dot dot-yellow"></span>1.3-1.5 警戒</span>
+                <span><span class="legend-dot dot-red"></span>>1.5 危險</span>
+            </div>
+            <div id="chartLoad" class="chart-container"></div>
+        </div>
+        <div class="chart-card"><h2>訓練結構</h2><div id="chartStack" class="chart-container"></div></div>
+        <div class="chart-card"><h2>訓練趨勢</h2><div id="chartTrend" class="chart-container"></div></div>
+        <div class="chart-card">
+            <h2>訓練分析 <select id="pieMonthSelect"></select></h2>
+            <div id="chartPie" class="chart-container"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 你的 Google Sheet CSV 連結
+    const YOUR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfKipyUTKtVPZ4HUcse4iJZjkD5fw_3HzmMgkCfi6UDphbjOZidlqMXFuGOhu0FiJCLzJcKtgt2Dqy/pub?gid=1055429386&single=true&output=csv';
+    // ==========================================
+
+    let rawData = [];
+    const categories = ['武術', '格鬥', '健身', '對練', 'HIIT', 'Zone 2'];
+    const intensityWeights = { '武術': 1.0, '格鬥': 1.5, '健身': 1.2, '對練': 1.8, 'HIIT': 2.0, 'Zone 2': 0.8 };
+    const colors = ['#F43F5E', '#2563EB', '#F59E0B', '#0EA5E9', '#8B5CF6', '#10B981'];
+    let charts = {};
+
+    function init() {
+        charts.load = echarts.init(document.getElementById('chartLoad'));
+        charts.stack = echarts.init(document.getElementById('chartStack'));
+        charts.trend = echarts.init(document.getElementById('chartTrend'));
+        charts.pie = echarts.init(document.getElementById('chartPie'));
+        
+        window.addEventListener('resize', () => Object.values(charts).forEach(c => c.resize()));
+        document.getElementById('pieMonthSelect').onchange = updatePie;
+
+        fetchData();
+    }
+
+    function fetchData() {
+        const loadingEl = document.getElementById('loadingStatus');
+        const targetUrl = YOUR_SHEET_URL + '&t=' + Date.now();
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
+
+        fetch(proxyUrl)
+            .then(response => {
+                if (!response.ok) throw new Error("讀取錯誤");
+                return response.text();
+            })
+            .then(csvText => {
+                parseCSV(csvText);
+                loadingEl.innerHTML = "✅ 數據已同步";
+                loadingEl.style.color = "#86efac";
+                updateUI();
+            })
+            .catch(error => {
+                console.error(error);
+                loadingEl.innerText = "⚠️ 讀取失敗，請檢查網路";
+                loadingEl.style.color = "#fca5a5";
+            });
+    }
+
+    function parseCSV(text) {
+        const lines = text.trim().split(/\r\n|\n/);
+        
+        let headerIndex = -1;
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('武術') || lines[i].includes('格鬥')) {
+                headerIndex = i;
+                break;
+            }
+        }
+
+        if (headerIndex === -1) {
+            console.error("找不到標題列");
+            return;
+        }
+
+        const headers = lines[headerIndex].split(',').map(h => h.trim());
+        if (headers[0] === '') headers[0] = 'month';
+        
+        rawData = [];
+        
+        for (let i = headerIndex + 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const row = lines[i].split(',');
+            if (row.length < 2) continue;
+            
+            let monthVal = row[0].trim();
+            if (!monthVal.startsWith('20')) continue;
+
+            let obj = { month: monthVal };
+            categories.forEach(cat => {
+                const idx = headers.indexOf(cat);
+                if (idx > -1) {
+                    let val = row[idx].trim();
+                    obj[cat] = val === '' ? 0 : (parseInt(val) || 0);
+                } else {
+                    obj[cat] = 0;
+                }
+            });
+            rawData.push(obj);
+        }
+        rawData.sort((a,b) => a.month.localeCompare(b.month));
+    }
+
+    function updateUI() {
+        renderCharts();
+        updateSelect();
+    }
+
+    function updateSelect() {
+        const s = document.getElementById('pieMonthSelect');
+        const oldVal = s.value;
+        s.innerHTML = rawData.map(d => `<option value="${d.month}">${d.month}</option>`).join('');
+        s.value = rawData.some(d => d.month === oldVal) ? oldVal : (rawData[rawData.length-1]?.month || '');
+        updatePie();
+    }
+
+    function renderCharts() {
+        const months = rawData.map(d => d.month);
+        const loadHistory = rawData.map(d => categories.reduce((sum, cat) => sum + (d[cat] * intensityWeights[cat]), 0));
+        const acwrData = loadHistory.map((acute, idx) => {
+            if (idx < 3) return null;
+            const chronic = loadHistory.slice(idx - 3, idx).reduce((a, b) => a + b, 0) / 3;
+            return chronic === 0 ? 0 : parseFloat((acute / chronic).toFixed(2));
+        });
+
+        const commonX = { type: 'category', data: months, axisLabel: { fontSize: 10, color: '#64748b' } };
+
+        // 負荷圖
+        charts.load.setOption({
+            tooltip: { 
+                trigger: 'axis', axisPointer: { type: 'line' },
+                formatter: function (params) {
+                    let date = params[0].name;
+                    let load = params[0].value;
+                    let acwr = params[1].value;
+                    let status = "";
+                    if (acwr !== null) {
+                        if (acwr > 1.5) status = "🔴 危險";
+                        else if (acwr >= 1.3) status = "🟡 警戒";
+                        else if (acwr >= 0.8) status = "🟢 最佳";
+                        else status = "⚪ 偏低";
+                    }
+                    return `${date}<br/>負荷: ${Math.round(load)}<br/>ACWR: ${acwr ?? '--'} ${status}`;
+                }
+            },
+            legend: { top: 0, right: 10 },
+            grid: { top: 30, bottom: 20, left: 10, right: 10, containLabel: true },
+            xAxis: commonX,
+            yAxis: [
+                { type: 'value', splitLine: { show: false } },
+                { type: 'value', min: 0, max: 2.5, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } } }
+            ],
+            series: [
+                { name: '總負荷', type: 'bar', data: loadHistory, itemStyle: { color: '#1e293b', borderRadius: [4, 4, 0, 0] } },
+                { name: 'ACWR', type: 'line', yAxisIndex: 1, data: acwrData, smooth: true, symbolSize: 6, itemStyle: { color: '#f59e0b' }, lineStyle: { width: 3 },
+                    markArea: {
+                        silent: true,
+                        data: [
+                            [{ yAxis: 0.8, itemStyle: { color: 'rgba(16, 185, 129, 0.1)' } }, { yAxis: 1.3 }],
+                            [{ yAxis: 1.3, itemStyle: { color: 'rgba(245, 158, 11, 0.1)' } }, { yAxis: 1.5 }],
+                            [{ yAxis: 1.5, itemStyle: { color: 'rgba(239, 68, 68, 0.1)' } }, { yAxis: 3.0 }]
+                        ]
+                    }
+                }
+            ]
+        });
+
+        // 堆疊圖
+        const totals = rawData.map(d => categories.reduce((s, c) => s + d[c], 0));
+        charts.stack.setOption({
+            tooltip: { trigger: 'item', formatter: p => `${p.seriesName}<br/>${Math.floor(p.value/60)}時${p.value%60}分` },
+            legend: { top: 0, type: 'scroll' },
+            grid: { top: 40, bottom: 20, left: 35, right: 15, containLabel: true },
+            xAxis: commonX, yAxis: { type: 'value' },
+            series: categories.map((cat, ci) => ({
+                name: cat, type: 'bar', stack: 'total', emphasis: { focus: 'series' },
+                data: rawData.map((d, mi) => {
+                    let isTop = true;
+                    for(let k=ci+1; k<categories.length; k++) if(rawData[mi][categories[k]] > 0) { isTop = false; break; }
+                    return { value: d[cat], itemStyle: { color: colors[ci], borderRadius: (isTop && d[cat]>0) ? [4,4,0,0] : 0 } };
+                }),
+                label: ci === categories.length-1 ? { show:true, position:'top', formatter: p => (totals[p.dataIndex]/60).toFixed(1)+'h', fontSize:10, color:'#64748b' } : {show:false}
+            }))
+        });
+
+        // 趨勢圖
+        charts.trend.setOption({
+            tooltip: { trigger: 'item', formatter: p => `${p.name}<br/>${p.marker} ${p.seriesName}: ${Math.floor(p.value/60)}時${p.value%60}分` },
+            legend: { top: 0, type: 'scroll' },
+            grid: { top: 40, bottom: 20, left: 35, right: 10, containLabel: true },
+            xAxis: { ...commonX, boundaryGap: false }, yAxis: { type: 'value' },
+            series: categories.map((c, i) => ({ 
+                name: c, type: 'line', smooth: true, data: rawData.map(d => d[c]), 
+                itemStyle: { color: colors[i] }, emphasis: { focus: 'series', lineStyle: { width: 4 } } 
+            }))
+        });
+    }
+
+    function updatePie() {
+        const m = document.getElementById('pieMonthSelect').value;
+        const d = rawData.find(x => x.month === m);
+        if(!d) return;
+        charts.pie.setOption({
+            tooltip: { trigger: 'item', formatter: p => `${p.name}<br/>${Math.floor(p.value/60)}時${p.value%60}分 (${p.percent}%)` },
+            series: [{ 
+                type: 'pie', radius: ['40%', '70%'], 
+                label: { show: true, formatter: '{b}\n{d}%' }, 
+                data: categories.map((c, i) => ({ name: c, value: d[c], itemStyle: { color: colors[i] } })).filter(v => v.value > 0)
+            }]
+        });
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>
