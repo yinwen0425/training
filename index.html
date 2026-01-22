@@ -176,6 +176,7 @@
         for (let i = headerIndex + 1; i < lines.length; i++) {
             const row = lines[i].split(',');
             
+            // 左表
             if (leftStartCol >= 0 && row[leftStartCol] && row[leftStartCol].trim().startsWith('20')) {
                 let obj = { month: row[leftStartCol].trim() };
                 categories.forEach((cat, offset) => {
@@ -185,6 +186,7 @@
                 rawData.push(obj);
             }
 
+            // 右表
             if (rightStartCol >= 0 && row[rightStartCol] && row[rightStartCol].trim().startsWith('20')) {
                 let obj = { month: row[rightStartCol].trim() };
                 categories.forEach((cat, offset) => {
@@ -194,8 +196,17 @@
                 weeklyData.push(obj);
             }
         }
-        rawData.sort((a,b) => a.month.localeCompare(b.month));
-        weeklyData.sort((a,b) => a.month.localeCompare(b.month));
+        
+        // ★★★ 修正點：使用 Date 物件進行排序，解決 1/5 排在 1/12 後面的問題 ★★★
+        const dateSorter = (a, b) => {
+            // 取出日期部分 (避免 "2026/1/5 - 2026/1/11" 這種格式干擾)
+            const dateA = new Date(a.month.split(' - ')[0]);
+            const dateB = new Date(b.month.split(' - ')[0]);
+            return dateA - dateB;
+        };
+
+        rawData.sort(dateSorter);
+        weeklyData.sort(dateSorter);
     }
 
     function updateUI() {
@@ -213,7 +224,7 @@
 
     function renderCharts() {
         // --------------------------------------------------------------------------------
-        // 1. 訓練負荷圖 (週) - ACWR 改為動態窗口算法
+        // 1. 訓練負荷圖 (週)
         // --------------------------------------------------------------------------------
         
         const weeklyTimeline = weeklyData.map(d => d.month.split(' - ')[0]);
@@ -221,30 +232,18 @@
             categories.reduce((sum, cat) => sum + (d[cat] * intensityWeights[cat]), 0)
         );
 
-        // ★★★ 修改點：ACWR 計算邏輯 (動態窗口) ★★★
-        // 不再強制要求 "前3週"，而是 "有多少算多少 (最多往前算3週)"
         const chronicLoads = acuteLoads.map((val, idx) => {
-            // 計算起始點：最多往前 3 週，但不能小於 0
-            // 例如：第0週(idx=0)，start=0 (算1週平均)
-            // 例如：第2週(idx=2)，start=0 (算3週平均)
-            // 例如：第4週(idx=4)，start=1 (算4週平均)
             const startIdx = Math.max(0, idx - 3);
-            
-            // 取出這段時間的數據
             const subset = acuteLoads.slice(startIdx, idx + 1);
-            
-            // 計算平均 (分母是實際有幾週數據)
             const sum = subset.reduce((a, b) => a + b, 0);
             return sum / subset.length;
         });
 
         const acwrData = acuteLoads.map((acute, idx) => {
             const chronic = chronicLoads[idx];
-            // 避免除以 0
             if (chronic === 0) return 0;
             return parseFloat((acute / chronic).toFixed(2));
         });
-        // ★★★ 修改結束 ★★★
 
         const startValueWeekly = Math.max(0, weeklyTimeline.length - 6);
 
@@ -278,7 +277,7 @@
             xAxis: { 
                 type: 'category', 
                 data: weeklyTimeline, 
-                axisLabel: { fontSize: 10, color: '#64748b' } 
+                axisLabel: { fontSize: 10, color: '#64748b', showMaxLabel: true } 
             },
             yAxis: [
                 { type: 'value', splitLine: { show: false } },
@@ -307,7 +306,7 @@
         });
 
         // --------------------------------------------------------------------------------
-        // 2. 訓練結構 (月) - 保持原樣
+        // 2. 訓練結構 (月)
         // --------------------------------------------------------------------------------
 
         const commonXMonthly = { type: 'category', data: rawData.map(d => d.month), axisLabel: { fontSize: 10, color: '#64748b' } };
@@ -341,7 +340,7 @@
         });
 
         // --------------------------------------------------------------------------------
-        // 3. 訓練趨勢 (月) - 保持原樣
+        // 3. 訓練趨勢 (月)
         // --------------------------------------------------------------------------------
         
         charts.trend.setOption({
