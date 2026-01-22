@@ -43,6 +43,50 @@
         .header h1 { margin: 0; font-size: 20px; letter-spacing: 1px; }
         .loading-text { margin-top: 8px; font-size: 13px; color: #cbd5e1; }
 
+        /* 戰情分析卡樣式 */
+        .analysis-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-left: 6px solid #ccc; 
+            transition: all 0.3s ease;
+        }
+        .analysis-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+        
+        /* [修改] 狀態標籤樣式：加入 Flex 讓圓點對齊，並微調陰影 */
+        .analysis-status { 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            color: white; 
+            font-weight: bold; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; /* 圓點跟文字的距離 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* [新增] 狀態燈號：統一為白色圓點，確保在深色背景最清晰 */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .analysis-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        @media (min-width: 640px) { .analysis-grid { grid-template-columns: repeat(4, 1fr); } }
+        
+        .metric-box { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; }
+        .metric-label { font-size: 11px; color: #64748b; margin-bottom: 2px; }
+        .metric-value { font-size: 16px; font-weight: bold; color: #334155; }
+        .metric-unit { font-size: 10px; color: #94a3b8; }
+
+        .advice-box { background: #f0f9ff; padding: 15px; border-radius: 8px; font-size: 14px; color: #0c4a6e; line-height: 1.5; }
+
         .grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
         @media (min-width: 1024px) { .grid { grid-template-columns: 1fr 1fr; } }
         
@@ -52,20 +96,7 @@
         h2 { font-size: 15px; margin: 0 0 10px; border-left: 4px solid var(--primary); padding-left: 10px; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
         select { font-size: 12px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; }
         
-        .legend-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 11px;
-            color: #64748b;
-            margin-bottom: 5px;
-            background: #f8fafc;
-            padding: 6px 8px;
-            border-radius: 4px;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-        
+        .legend-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; margin-bottom: 5px; background: #f8fafc; padding: 6px 8px; border-radius: 4px; flex-wrap: wrap; gap: 5px; }
         .legend-group { display: flex; gap: 8px; align-items: center; }
         .legend-item { display: flex; align-items: center; white-space: nowrap; }
 
@@ -77,9 +108,8 @@
         .icon-bar { width: 10px; height: 8px; background: #1e293b; border-radius: 2px; margin-right: 3px; display: inline-block; }
         .icon-line-acwr { width: 10px; height: 2px; background: #f59e0b; margin-right: 3px; display: inline-block; position: relative; top: -1px; }
         .icon-line-acwr::after { content: ''; position: absolute; width: 4px; height: 4px; background: #fff; border: 1px solid #f59e0b; border-radius: 50%; top: -2px; left: 3px; }
-        
         .icon-line-perf { width: 10px; height: 2px; background: #8b5cf6; margin-right: 3px; display: inline-block; position: relative; top: -1px; } 
-        .icon-line-hrv { width: 10px; height: 2px; border-bottom: 2px dashed #06b6d4; margin-right: 3px; display: inline-block; position: relative; top: -2px; } 
+        .icon-line-hrv { width: 10px; height: 2px; border-bottom: 2px dashed #ec4899; margin-right: 3px; display: inline-block; position: relative; top: -2px; } 
     </style>
 </head>
 <body>
@@ -88,6 +118,37 @@
     <div class="header">
         <h1>運動訓練數據儀表板</h1>
         <div id="loadingStatus" class="loading-text">正在連線 Google Sheets...</div>
+    </div>
+
+    <!-- 本週戰情分析卡 -->
+    <div id="analysisCard" class="analysis-section" style="display:none;">
+        <div class="analysis-title">
+            <span id="analysisDate">本週狀況分析</span>
+            <!-- 這裡的內容會由 JS 動態生成 -->
+            <div id="analysisBadge" class="analysis-status">計算中</div>
+        </div>
+        <div class="analysis-grid">
+            <div class="metric-box">
+                <div class="metric-label">本週負荷</div>
+                <div class="metric-value" id="valLoad">--</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">ACWR 風險</div>
+                <div class="metric-value" id="valAcwr">--</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">HRV 狀態</div>
+                <div class="metric-value" id="valHrv">--</div>
+                <div class="metric-unit">週平均</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">預測表現</div>
+                <div class="metric-value" id="valTsb">--</div>
+            </div>
+        </div>
+        <div class="advice-box" id="valAdvice">
+            正在分析數據...
+        </div>
     </div>
 
     <div class="grid">
@@ -102,7 +163,7 @@
                 <div class="legend-group">
                     <div class="legend-item"><span class="icon-bar"></span>總負荷</div>
                     <div class="legend-item"><span class="icon-line-acwr"></span>ACWR</div>
-                    <div class="legend-item"><span class="icon-line-perf"></span>表現</div>
+                    <div class="legend-item"><span class="icon-line-perf"></span>預測表現</div>
                     <div class="legend-item"><span class="icon-line-hrv"></span>HRV</div>
                 </div>
             </div>
@@ -118,10 +179,7 @@
 </div>
 
 <script>
-    // ==========================================
-    // 你的 Google Sheet CSV 連結
     const YOUR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfKipyUTKtVPZ4HUcse4iJZjkD5fw_3HzmMgkCfi6UDphbjOZidlqMXFuGOhu0FiJCLzJcKtgt2Dqy/pub?gid=1055429386&single=true&output=csv';
-    // ==========================================
 
     let rawData = [];
     let weeklyData = [];
@@ -174,16 +232,12 @@
             });
     }
 
-    // 手動標準化日期字串 (YYYY/M/D)，避免 Date 物件時區問題
     function getStandardDate(dateStr) {
         if (!dateStr) return null;
         let s = dateStr.split(' - ')[0].trim();
-        s = s.replace(/-/g, '/'); // 統一分隔符
-        
-        // 拆解 Y/M/D
+        s = s.replace(/-/g, '/'); 
         let parts = s.split('/');
         if (parts.length === 3) {
-            // 去除補零，例如 01 -> 1
             return `${parseInt(parts[0])}/${parseInt(parts[1])}/${parseInt(parts[2])}`;
         }
         return null;
@@ -211,20 +265,17 @@
         if (wushuIndices.length > 0) leftStartCol = wushuIndices[0] - 1;
         if (wushuIndices.length > 1) rightStartCol = wushuIndices[1] - 1;
 
-        // ★★★ 修正點：同時搜尋本列與「上一列」來找 Readiness ★★★
-        // 因為 Pivot Table 的值標題通常在上一列
         let searchRows = [headerRow];
         if (headerIndex > 0) {
             searchRows.push(lines[headerIndex - 1].split(',').map(h => h.trim()));
         }
 
-        // 搜尋 Readiness
         for (let row of searchRows) {
             let rIndex = row.findIndex(h => h.toLowerCase().includes('readiness'));
             if (rIndex > -1) {
                 readinessValCol = rIndex;
                 readinessDateCol = rIndex - 1; 
-                break; // 找到就停
+                break; 
             }
         }
 
@@ -235,7 +286,6 @@
         for (let i = headerIndex + 1; i < lines.length; i++) {
             const row = lines[i].split(',');
             
-            // --- 讀左表 (月) ---
             if (leftStartCol >= 0 && row[leftStartCol] && row[leftStartCol].trim().startsWith('20')) {
                 let obj = { month: row[leftStartCol].trim() };
                 categories.forEach((cat, offset) => {
@@ -245,7 +295,6 @@
                 rawData.push(obj);
             }
 
-            // --- 讀中表 (週訓練) ---
             if (rightStartCol >= 0 && row[rightStartCol] && row[rightStartCol].trim().startsWith('20')) {
                 let dateStr = row[rightStartCol].trim();
                 let obj = { month: dateStr };
@@ -256,12 +305,10 @@
                 tempWeekly.push(obj);
             }
 
-            // --- 讀右表 (Readiness) ---
             if (readinessDateCol >= 0 && row[readinessDateCol]) {
                 let rDateRaw = row[readinessDateCol].trim();
                 let rValStr = row[readinessValCol] ? row[readinessValCol].trim() : "";
                 
-                // 只要日期有效就讀取，不管是在哪一行
                 if (rDateRaw.startsWith('20') && rValStr) {
                     let stdDate = getStandardDate(rDateRaw);
                     let rVal = parseFloat(rValStr.replace('%', ''));
@@ -272,7 +319,6 @@
             }
         }
 
-        // 合併週數據與 Readiness
         weeklyData = tempWeekly.map(d => {
             let stdKey = getStandardDate(d.month);
             return {
@@ -281,7 +327,6 @@
             };
         });
         
-        // 排序：使用 Date 物件比對
         const dateSorter = (a, b) => {
             let dateA = new Date(getStandardDate(a.month));
             let dateB = new Date(getStandardDate(b.month));
@@ -303,6 +348,69 @@
         s.innerHTML = rawData.map(d => `<option value="${d.month}">${d.month}</option>`).join('');
         s.value = rawData.some(d => d.month === oldVal) ? oldVal : (rawData[rawData.length-1]?.month || '');
         updatePie();
+    }
+
+    function analyzeCurrentStatus(latestLoad, latestACWR, latestTSB, latestHRV, latestDate) {
+        const card = document.getElementById('analysisCard');
+        const badge = document.getElementById('analysisBadge');
+        const txtAdvice = document.getElementById('valAdvice');
+        const boxLoad = document.getElementById('valLoad');
+        const boxAcwr = document.getElementById('valAcwr');
+        const boxHrv = document.getElementById('valHrv');
+        const boxTsb = document.getElementById('valTsb');
+        
+        card.style.display = 'block';
+        document.getElementById('analysisDate').innerText = `本週分析 (${latestDate})`;
+
+        boxLoad.innerText = Math.round(latestLoad);
+        boxAcwr.innerText = latestACWR || '--';
+        boxAcwr.style.color = latestACWR > 1.5 ? '#dc2626' : (latestACWR >= 1.3 ? '#d97706' : '#059669');
+        
+        boxHrv.innerText = latestHRV ? latestHRV + '%' : '--';
+        if (latestHRV) {
+            boxHrv.style.color = latestHRV < 60 ? '#dc2626' : (latestHRV < 75 ? '#d97706' : '#059669');
+        }
+
+        let tsbSign = latestTSB > 0 ? "+" : "";
+        boxTsb.innerText = tsbSign + latestTSB;
+        boxTsb.style.color = latestTSB >= 0 ? '#059669' : '#dc2626';
+
+        let status = "普通";
+        let color = "#475569"; // Gray
+        let advice = "";
+
+        // [修改] 使用 <span class="status-dot"></span> 取代 Emoji
+        // [修改] 加深了背景色碼，確保白字清晰可見
+        if (latestACWR > 1.3 && latestHRV && latestHRV < 65) {
+            status = '<span class="status-dot"></span> 高風險';
+            color = "#dc2626"; // Red-600
+            advice = "<strong>⚠️ 警告：</strong>強度增加過快且恢復不佳。本週建議<strong>強制減量</strong>，避免受傷。";
+        }
+        else if (latestACWR > 1.3) {
+            status = '<span class="status-dot"></span> 警戒中';
+            color = "#d97706"; // Amber-600 (Darker Orange)
+            advice = "<strong>💪 衝刺期：</strong>負荷較高，身體尚可支撐。請繼續訓練，但務必<strong>確保睡眠</strong>。";
+        }
+        else if (latestHRV && latestHRV < 60) {
+            status = '<span class="status-dot"></span> 需恢復';
+            color = "#d97706"; // Amber-600
+            advice = "<strong>🛌 身體亮紅燈：</strong>非訓練因素導致的疲勞。<strong>請休息，不要補練</strong>。";
+        }
+        else if (latestHRV && latestHRV >= 75) {
+            status = '<span class="status-dot"></span> 狀態絕佳';
+            color = "#059669"; // Emerald-600
+            advice = "<strong>🚀 綠燈全開：</strong>身體電量充足。適合挑戰<strong>高強度或大重量</strong>。";
+        }
+        else {
+            status = '<span class="status-dot"></span> 穩定累積';
+            color = "#2563eb"; // Blue-600
+            advice = "訓練與恢復平衡。請維持目前節奏，專注技術，穩紮穩打。";
+        }
+
+        badge.innerHTML = status; // 改用 innerHTML 以支援 span
+        badge.style.backgroundColor = color;
+        card.style.borderLeftColor = color;
+        txtAdvice.innerHTML = advice;
     }
 
     function renderCharts() {
@@ -331,6 +439,17 @@
 
         const readinessData = weeklyData.map(d => d.readiness);
 
+        if (weeklyData.length > 0) {
+            const lastIdx = weeklyData.length - 1;
+            analyzeCurrentStatus(
+                acuteLoads[lastIdx], 
+                acwrData[lastIdx], 
+                tsbData[lastIdx], 
+                readinessData[lastIdx], 
+                weeklyTimeline[lastIdx]
+            );
+        }
+
         const startValueWeekly = Math.max(0, weeklyTimeline.length - 6);
 
         charts.load.setOption({
@@ -348,9 +467,8 @@
                         if (p.seriesName === '預測表現') {
                             let sign = p.value > 0 ? "+" : "";
                             let color = p.value >= 0 ? "green" : "red";
-                            result += `表現: <span style="color:${color}">${sign}${p.value}</span><br/>`;
+                            result += `預測表現: <span style="color:${color}">${sign}${p.value}</span><br/>`;
                         }
-                        // [優化] 如果是 null/undefined 顯示 --
                         if (p.seriesName === 'HRV') result += `HRV: ${p.value !== undefined ? p.value + '%' : '--'}<br/>`;
                     });
                     return result;
@@ -370,7 +488,8 @@
             yAxis: [
                 { type: 'value', splitLine: { show: false } },
                 { type: 'value', min: 0, max: 2.5, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }, axisLabel: { show: false } },
-                { type: 'value', min: 0, max: 100, show: false } 
+                { type: 'value', min: 0, max: 100, show: false },
+                { type: 'value', splitLine: { show: false }, show: false }
             ],
             series: [
                 { 
@@ -392,9 +511,14 @@
                     }
                 },
                 {
-                    name: '預測表現', type: 'line', yAxisIndex: 0, data: tsbData,
+                    name: '預測表現', type: 'line', yAxisIndex: 3, data: tsbData,
                     smooth: true, showSymbol: false,
                     lineStyle: { width: 2, color: '#8b5cf6' },
+                    markLine: {
+                        silent: true, symbol: 'none', label: { show: false },
+                        lineStyle: { type: 'solid', color: 'rgba(139, 92, 246, 0.5)', width: 1 },
+                        data: [ { yAxis: 0 } ]
+                    },
                     areaStyle: {
                         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                             { offset: 0, color: 'rgba(139, 92, 246, 0.3)' },
@@ -406,8 +530,8 @@
                     name: 'HRV', type: 'line', yAxisIndex: 2, data: readinessData,
                     smooth: true, symbol: 'circle', symbolSize: 4,
                     connectNulls: true,
-                    itemStyle: { color: '#06b6d4' },
-                    lineStyle: { width: 2, type: 'dashed', color: '#06b6d4' } 
+                    itemStyle: { color: '#ec4899' },
+                    lineStyle: { width: 2, type: 'dashed', color: '#ec4899' } 
                 }
             ]
         });
