@@ -6,16 +6,15 @@
     <title>個人運動訓練數據儀表板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
-        :root { --primary: #3b82f6; --bg: #f1f5f9; --text: #1e293b; --card-bg: #ffffff; }
+        :root { --primary: #3b82f6; --bg: #f1f5f9; --text: #1e293b; --card-bg: #ffffff; --header-dark: #1e293b; }
         * { box-sizing: border-box; }
-        body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); -webkit-font-smoothing: antialiased; }
         .container { width: 100%; max-width: 1200px; margin: 0 auto; }
-        
-        .header { text-align: center; margin-bottom: 15px; background: linear-gradient(135deg, #1e293b, #334155); padding: 20px; border-radius: 12px; color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 15px; background: linear-gradient(135deg, var(--header-dark), #334155); padding: 20px; border-radius: 12px; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .header h1 { margin: 0; font-size: 20px; letter-spacing: 1px; }
         .loading-text { margin-top: 8px; font-size: 13px; color: #cbd5e1; }
 
-        /* 分析卡 */
+        /* 戰情分析卡 */
         .analysis-section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 6px solid #ccc; transition: all 0.3s ease; }
         .analysis-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
         .analysis-status { padding: 4px 12px; border-radius: 20px; font-size: 12px; color: white; font-weight: bold; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -32,7 +31,7 @@
         .advice-box { background: #f0f9ff; padding: 15px; border-radius: 8px; font-size: 14px; color: #0c4a6e; line-height: 1.5; }
 
         /* Modal */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-box { background: white; width: 85%; max-width: 400px; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-title { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
         .modal-content { font-size: 14px; color: #475569; line-height: 1.6; }
@@ -43,6 +42,7 @@
         
         .chart-card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 380px; display: flex; flex-direction: column; }
         .chart-container { flex: 1; width: 100%; min-height: 0; }
+        
         h2 { font-size: 15px; margin: 0 0 10px; border-left: 4px solid var(--primary); padding-left: 10px; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
         select { font-size: 12px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; }
         
@@ -133,52 +133,30 @@
 <script>
     const YOUR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfKipyUTKtVPZ4HUcse4iJZjkD5fw_3HzmMgkCfi6UDphbjOZidlqMXFuGOhu0FiJCLzJcKtgt2Dqy/pub?gid=1055429386&single=true&output=csv';
 
-    let rawData = []; // 月統計
-    let weeklyData = []; // 週 sRPE + HRV
+    let rawData = [];
+    let weeklyData = [];
 
     const categories = ['武術', '格鬥', '對練', '健身', 'HIIT', 'Zone 2'];
     const colors = ['#F43F5E', '#2563EB', '#8B5CF6', '#F59E0B', '#0EA5E9', '#10B981'];
+    // 備用權重，僅供月統計參考，週負荷已直讀 sRPE
+    const intensityWeights = { '武術': 1.0, '格鬥': 1.5, '健身': 1.2, '對練': 1.8, 'HIIT': 2.0, 'Zone 2': 0.8 };
     
-    // [修改] 資訊內容更新 (移除舊的計算公式說明，改為強調 sRPE)
     const infoData = {
         'load': {
             title: '本週負荷 (sRPE)',
-            content: `
-                <p>數值來源：Google Sheets 計算 (時間 × RPE)。</p>
-                <p>這是你本週累積的總壓力。數值大小因人而異 (通常 2000-5000 AU)。重點是<strong>觀察趨勢</strong>：</p>
-                <ul>
-                    <li>避免單週暴衝 (比上週高 >20%)。</li>
-                    <li>長期維持高檔需安排減量週。</li>
-                </ul>`
+            content: `<p>來源：直接讀取 CSV 的 sRPE 欄位。</p><ul><li>這是你本週的總訓練壓力。</li><li>數值大小取決於你的訓練習慣 (2000-5000 AU 都有可能)。</li><li>重點是看<strong>趨勢</strong>：不要比上週突然暴增。</li></ul>`
         },
         'acwr': {
             title: 'ACWR 風險係數',
-            content: `
-                <p>急性/慢性負荷比。預防受傷的黃金指標。</p>
-                <ul>
-                    <li><span style="color:#10b981">●</span> <strong>0.8 - 1.3</strong>：安全進步區。</li>
-                    <li><span style="color:#f59e0b">●</span> <strong>1.3 - 1.5</strong>：警戒區，受傷風險略增。</li>
-                    <li><span style="color:#ef4444">●</span> <strong>> 1.5</strong>：危險區，建議減量。</li>
-                </ul>`
+            content: `<ul><li><span style="color:#10b981">●</span> <strong>0.8 - 1.3</strong>：安全區。</li><li><span style="color:#f59e0b">●</span> <strong>1.3 - 1.5</strong>：警戒區。</li><li><span style="color:#ef4444">●</span> <strong>> 1.5</strong>：危險區。</li></ul>`
         },
         'hrv': {
             title: 'HRV 狀態 (Readiness)',
-            content: `
-                <p>反映自律神經狀態 (身體電量)。這是「週平均值」。</p>
-                <ul>
-                    <li><span style="color:#10b981">●</span> <strong>> 75%</strong>：電量充足。</li>
-                    <li><span style="color:#f59e0b">●</span> <strong>60% - 75%</strong>：稍微疲勞。</li>
-                    <li><span style="color:#ef4444">●</span> <strong>< 60%</strong>：身心壓力大，建議休息。</li>
-                </ul>`
+            content: `<ul><li><span style="color:#10b981">●</span> <strong>> 75%</strong>：狀態佳。</li><li><span style="color:#f59e0b">●</span> <strong>60% - 75%</strong>：微疲勞。</li><li><span style="color:#ef4444">●</span> <strong>< 60%</strong>：需休息。</li></ul>`
         },
         'tsb': {
             title: '預測表現 (TSB)',
-            content: `
-                <p>公式：體能 (長期) - 疲勞 (近期)。</p>
-                <ul>
-                    <li><strong>負值</strong>：正常訓練期 (累積疲勞中)。</li>
-                    <li><strong>正值</strong>：比賽狀態 (體能好且不累)。</li>
-                </ul>`
+            content: `<p>公式：體能 (長期) - 疲勞 (近期)。</p><ul><li><strong>負值</strong>：累積疲勞期 (正常訓練)。</li><li><strong>正值</strong>：比賽狀態 (巔峰)。</li></ul>`
         }
     };
 
@@ -198,13 +176,9 @@
 
     function showInfo(type) {
         const modal = document.getElementById('infoModal');
-        const title = document.getElementById('modalTitle');
-        const content = document.getElementById('modalContent');
-        if (infoData[type]) {
-            title.innerText = infoData[type].title;
-            content.innerHTML = infoData[type].content;
-            modal.style.display = 'flex';
-        }
+        document.getElementById('modalTitle').innerText = infoData[type].title;
+        document.getElementById('modalContent').innerHTML = infoData[type].content;
+        modal.style.display = 'flex';
     }
 
     function closeInfo(e) {
@@ -226,7 +200,7 @@
             .then(csvText => {
                 parseCSV_Optimized(csvText);
                 
-                if (weeklyData.length === 0 && rawData.length > 0) weeklyData = rawData.map(d => ({...d, load: 0})); // 防呆
+                if (weeklyData.length === 0 && rawData.length > 0) weeklyData = rawData.map(d => ({...d, load: 0}));
 
                 if (rawData.length === 0 && weeklyData.length === 0) throw new Error("無有效數據");
 
@@ -250,12 +224,10 @@
         return null;
     }
 
-    // ★★★ [重寫] 解析器：適應新的 sRPE 結構 ★★★
+    // ★★★ [修正] 處理月統計表中間有空欄位的問題 ★★★
     function parseCSV_Optimized(text) {
         const lines = text.trim().split(/\r\n|\n/);
         
-        // 尋找各區塊的標題列 (Header Row)
-        // 策略：掃描前 10 行，找出關鍵字的位置
         let monthlyStartCol = -1;
         let weeklyDateCol = -1;
         let weeklyLoadCol = -1;
@@ -263,60 +235,84 @@
         let readinessValCol = -1;
         
         let headerRowIndex = -1;
+        let headerRow = [];
 
-        // 1. 先找 Monthly (武術) 和 Weekly (sRPE)
-        for(let i=0; i<lines.length; i++) {
+        // 1. 找標題位置
+        for(let i=0; i<Math.min(10, lines.length); i++) {
             const row = lines[i].split(',').map(s => s.trim());
             
-            // 找月統計起始 (武術)
+            // 找 "武術"
             if (monthlyStartCol === -1) {
                 const idx = row.indexOf('武術');
                 if (idx > -1) {
-                    monthlyStartCol = idx - 1; // 日期在前一格
-                    headerRowIndex = i; // 標記這是主要標題列
+                    // 如果武術在 Index 2 (C欄)，那日期理論上在 Index 0 (A欄)
+                    // 所以這裡是找到武術位置，但我們在讀資料時會檢查 Index 0
+                    monthlyStartCol = idx; 
+                    headerRowIndex = i;
+                    headerRow = row;
                 }
             }
 
-            // 找週統計 (sRPE)
-            // 注意：sRPE 可能在第一列，也可能在第二列，所以我們獨立掃描
-            const sRPE_Idx = row.findIndex(s => s.toLowerCase() === 'srpe');
-            if (sRPE_Idx > -1) {
-                weeklyLoadCol = sRPE_Idx;
-                weeklyDateCol = sRPE_Idx - 1;
+            if (weeklyLoadCol === -1) {
+                const idx = row.findIndex(s => s.toLowerCase() === 'srpe');
+                if (idx > -1) {
+                    weeklyLoadCol = idx;
+                    weeklyDateCol = idx - 1;
+                }
             }
 
-            // 找 Readiness
-            const rIdx = row.findIndex(s => s.toLowerCase().includes('readiness'));
-            if (rIdx > -1) {
-                readinessValCol = rIdx;
-                readinessDateCol = rIdx - 1;
+            if (readinessValCol === -1) {
+                const idx = row.findIndex(s => s.toLowerCase().includes('readiness'));
+                if (idx > -1) {
+                    readinessValCol = idx;
+                    readinessDateCol = idx - 1;
+                }
             }
         }
 
-        // 開始解析數據
         rawData = [];
-        let tempWeekly = {}; // 用 Object Map 方便依日期合併 (Key: Date)
+        let tempWeekly = {};
 
-        // 從標題列的下一行開始
-        let startRow = headerRowIndex + 1;
+        let startRow = (headerRowIndex === -1) ? 1 : headerRowIndex + 1;
         
         for (let i = startRow; i < lines.length; i++) {
             const row = lines[i].split(',');
 
-            // 1. 解析月數據 (左表)
-            if (monthlyStartCol > -1 && row[monthlyStartCol]) {
-                const mDate = row[monthlyStartCol].trim();
-                if (mDate.startsWith('20')) {
-                    let obj = { month: mDate };
-                    categories.forEach((cat, offset) => {
-                        let val = row[monthlyStartCol + 1 + offset];
+            // 1. 解析月數據 (左表) - 針對空欄位修正
+            // 只要武術那欄有字 (可能是0)，且 A 欄是日期
+            if (monthlyStartCol > -1 && row[0] && row[0].trim().startsWith('20')) {
+                const mDate = row[0].trim();
+                let obj = { month: mDate };
+                
+                // 使用 indexOf 來找每個類別的正確欄位，避免依賴固定偏移
+                // 這樣就算中間有空欄位 (B欄) 也不怕
+                categories.forEach((cat) => {
+                    // 在標題列找該類別的位置 (限制範圍: 從月統計起始點附近開始找)
+                    // 簡單做法：在整行 header 找，但排除掉右邊表格的同名欄位(如果有)
+                    // 這裡假設月統計的欄位都在 sRPE 之前
+                    let colIdx = -1;
+                    // 在 headerRow 中尋找
+                    for(let k=0; k < headerRow.length; k++) {
+                        if(headerRow[k] === cat) {
+                            // 確保這是左表的欄位 (比 weeklyDateCol 小，或者如果沒週數據就直接認)
+                            if (weeklyDateCol === -1 || k < weeklyDateCol) {
+                                colIdx = k;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (colIdx > -1) {
+                        let val = row[colIdx];
                         obj[cat] = val ? (parseInt(val) || 0) : 0;
-                    });
-                    rawData.push(obj);
-                }
+                    } else {
+                        obj[cat] = 0;
+                    }
+                });
+                rawData.push(obj);
             }
 
-            // 2. 解析週數據 (中表: Date, sRPE)
+            // 2. 解析週數據
             if (weeklyDateCol > -1 && row[weeklyDateCol]) {
                 const wDateRaw = row[weeklyDateCol].trim();
                 if (wDateRaw.startsWith('20')) {
@@ -329,7 +325,7 @@
                 }
             }
 
-            // 3. 解析 Readiness (右表: Date, Value)
+            // 3. 解析 Readiness
             if (readinessDateCol > -1 && row[readinessDateCol]) {
                 const rDateRaw = row[readinessDateCol].trim();
                 if (rDateRaw.startsWith('20')) {
@@ -346,7 +342,6 @@
             }
         }
 
-        // 將 Map 轉回 Array 並排序
         weeklyData = Object.values(tempWeekly).sort((a, b) => {
             return new Date(a.month) - new Date(b.month);
         });
@@ -420,9 +415,8 @@
     }
 
     function renderCharts() {
-        // [修改] 這裡直接使用 weeklyData 的 .load 屬性，不再進行 category * weight 的計算
         const weeklyTimeline = weeklyData.map(d => d.month.split(' - ')[0]);
-        const acuteLoads = weeklyData.map(d => d.load); // 直接取值
+        const acuteLoads = weeklyData.map(d => d.load); 
 
         const chronicLoads = acuteLoads.map((val, idx) => {
             const startIdx = Math.max(0, idx - 3);
@@ -494,7 +488,6 @@
             ]
         });
 
-        // 以下月圖表維持原樣 (計算邏輯不變，因為本來就沒用 sRPE，只是看時數分佈)
         const commonXMonthly = { type: 'category', data: rawData.map(d => d.month), axisLabel: { fontSize: 10, color: '#64748b' } };
         const totals = rawData.map(d => categories.reduce((s, c) => s + d[c], 0));
         const startValueMonthly = Math.max(0, rawData.length - 6);
