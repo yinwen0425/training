@@ -48,10 +48,31 @@
             background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 6px solid #ccc; transition: all 0.3s ease;
         }
-        .analysis-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+        
+        /* [修正] 標題區塊：對齊設定 */
+        .analysis-title { 
+            font-size: 16px; 
+            font-weight: bold; 
+            margin-bottom: 10px; 
+            display: flex; 
+            align-items: center; /* 垂直置中 */
+            justify-content: space-between; 
+            gap: 10px; /* 標題與燈號的間距 */
+        }
+
+        /* [修正] 狀態燈號：禁止換行，禁止壓縮 */
         .analysis-status { 
-            padding: 4px 12px; border-radius: 20px; font-size: 12px; color: white; font-weight: bold; 
-            display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            color: white; 
+            font-weight: bold; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap; /* 關鍵：文字不換行 */
+            flex-shrink: 0;      /* 關鍵：空間不足時不縮小 */
         }
         .status-dot { width: 8px; height: 8px; background-color: white; border-radius: 50%; display: inline-block; }
         
@@ -59,16 +80,10 @@
         @media (min-width: 640px) { .analysis-grid { grid-template-columns: repeat(4, 1fr); } }
         
         .metric-box { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; position: relative; }
-        
-        /* [修正] 問號圖示樣式：改為藍色，更明顯 */
-        .metric-label { 
-            font-size: 11px; color: #64748b; margin-bottom: 2px; 
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-        }
+        .metric-label { font-size: 11px; color: #64748b; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 4px; }
         .info-icon {
-            width: 16px; height: 16px; background: #3b82f6; color: white;
-            border-radius: 50%; font-size: 11px; line-height: 16px; cursor: pointer;
-            display: inline-block; font-weight: bold;
+            width: 14px; height: 14px; background: #3b82f6; color: white;
+            border-radius: 50%; font-size: 10px; line-height: 14px; cursor: pointer; display: inline-block; font-weight: bold;
         }
         .metric-value { font-size: 16px; font-weight: bold; color: #334155; }
         .metric-unit { font-size: 10px; color: #94a3b8; }
@@ -136,7 +151,6 @@
         </div>
         <div class="analysis-grid">
             <div class="metric-box">
-                <!-- [修正] 加上 onclick 事件與圖示 -->
                 <div class="metric-label" onclick="showInfo('load')">本週負荷 <span class="info-icon">?</span></div>
                 <div class="metric-value" id="valLoad">--</div>
             </div>
@@ -201,50 +215,25 @@
 
     const categories = ['武術', '格鬥', '對練', '健身', 'HIIT', 'Zone 2'];
     const colors = ['#F43F5E', '#2563EB', '#8B5CF6', '#F59E0B', '#0EA5E9', '#10B981'];
+    // 備用權重，月統計使用
     const intensityWeights = { '武術': 1.0, '格鬥': 1.5, '健身': 1.2, '對練': 1.8, 'HIIT': 2.0, 'Zone 2': 0.8 };
     
-    // [修正] 濃縮易懂的運動科學說明
     const infoData = {
         'load': {
             title: '本週負荷 (sRPE)',
-            content: `
-                <p>這是你本週「訓練總量」的成績單。</p>
-                <ul>
-                    <li><strong>如何解讀：</strong>數字越大，代表你練得越累。沒有標準值，只有「跟自己比」。</li>
-                    <li><strong>操作建議：</strong>
-                        <br>1. 不要像坐雲霄飛車 (忽高忽低)。
-                        <br>2. 應該像「爬樓梯」，每週慢慢增加，每 4 週安排一次休息週 (數值減半)。
-                    </li>
-                </ul>`
+            content: `<p>來源：直接讀取 CSV 的 sRPE 欄位。</p><ul><li>這是你本週的總訓練壓力。</li><li>數值大小取決於你的訓練習慣 (2000-5000 AU 都有可能)。</li><li>重點是看<strong>趨勢</strong>：不要比上週突然暴增。</li></ul>`
         },
         'acwr': {
-            title: 'ACWR (受傷風險)',
-            content: `
-                <p>這是在監控你「有沒有衝太快」。</p>
-                <ul>
-                    <li><span style="color:#10b981">●</span> <strong>綠燈 (0.8 - 1.3)</strong>：最棒的區間！你在變強，且很安全。</li>
-                    <li><span style="color:#f59e0b">●</span> <strong>黃燈 (1.3 - 1.5)</strong>：有點衝了，下週課表不要再加量。</li>
-                    <li><span style="color:#ef4444">●</span> <strong>紅燈 (> 1.5)</strong>：危險！你練得比平常多 50% 以上，韌帶容易斷掉，請立刻休息。</li>
-                </ul>`
+            title: 'ACWR 風險係數',
+            content: `<ul><li><span style="color:#10b981">●</span> <strong>0.8 - 1.3</strong>：安全區。</li><li><span style="color:#f59e0b">●</span> <strong>1.3 - 1.5</strong>：警戒區。</li><li><span style="color:#ef4444">●</span> <strong>> 1.5</strong>：危險區。</li></ul>`
         },
         'hrv': {
-            title: 'HRV 狀態 (身體電量)',
-            content: `
-                <p>這是身體最誠實的「剩餘電量」指標。</p>
-                <ul>
-                    <li><span style="color:#10b981">●</span> <strong>> 75%</strong>：電量全滿。今天適合練最累的課表 (如對練、大重量)。</li>
-                    <li><span style="color:#f59e0b">●</span> <strong>60% - 75%</strong>：電量普通。可以練，但不要拚極限。</li>
-                    <li><span style="color:#ef4444">●</span> <strong>< 60%</strong>：沒電了。可能是壓力、熬夜或生病。<strong>嚴禁高強度訓練</strong>，去睡覺。</li>
-                </ul>`
+            title: 'HRV 狀態 (Readiness)',
+            content: `<ul><li><span style="color:#10b981">●</span> <strong>> 75%</strong>：狀態佳。</li><li><span style="color:#f59e0b">●</span> <strong>60% - 75%</strong>：微疲勞。</li><li><span style="color:#ef4444">●</span> <strong>< 60%</strong>：需休息。</li></ul>`
         },
         'tsb': {
-            title: '預測表現 (體能儲備)',
-            content: `
-                <p>這是用數學算出來的「理論狀態」。</p>
-                <ul>
-                    <li><strong>負值 (水面下)</strong>：<strong>正常練功期</strong>。你現在身體帶著疲勞，雖然感覺累，但這是在累積經驗值。</li>
-                    <li><strong>正值 (水面上)</strong>：<strong>比賽爆發期</strong>。賽前一週減量休息後，這條線會衝高，代表疲勞消除，體能釋放，這時候上場打比賽最強！</li>
-                </ul>`
+            title: '預測表現 (TSB)',
+            content: `<p>公式：體能 (長期) - 疲勞 (近期)。</p><ul><li><strong>負值</strong>：累積疲勞期 (正常訓練)。</li><li><strong>正值</strong>：比賽狀態 (巔峰)。</li></ul>`
         }
     };
 
@@ -443,7 +432,15 @@
         let startDate = new Date(latestDate);
         let endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
-        let endStr = `${endDate.getFullYear()}/${endDate.getMonth() + 1}/${endDate.getDate()}`;
+        
+        // [修正] 日期邏輯：同一年只顯示月日 (2026/1/19 ~ 1/25)
+        let endStr = "";
+        if (startDate.getFullYear() === endDate.getFullYear()) {
+            endStr = `${endDate.getMonth() + 1}/${endDate.getDate()}`;
+        } else {
+            endStr = `${endDate.getFullYear()}/${endDate.getMonth() + 1}/${endDate.getDate()}`;
+        }
+        
         document.getElementById('analysisDate').innerText = `本週分析 (${latestDate} ~ ${endStr})`;
 
         boxLoad.innerText = Math.round(latestLoad);
@@ -544,8 +541,9 @@
                 { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueWeekly, endValue: weeklyTimeline.length - 1, height: 20, bottom: 5, handleSize: '100%' },
                 { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true }
             ],
-            // [修正] 手動設定邊距，強制圖表撐開
-            grid: { top: 30, bottom: 35, left: '14%', right: '4%', containLabel: false },
+            // [修正] grid.right 改為 0%，配合 containLabel: false (我這裡稍微留 2% 避免太貼邊)
+            // 關鍵：containLabel: false 才能完全手動控制邊距
+            grid: { top: 30, bottom: 35, left: '14%', right: '2%', containLabel: false },
             xAxis: { type: 'category', data: weeklyTimeline, axisLabel: { fontSize: 10, color: '#64748b', showMaxLabel: true } },
             yAxis: [
                 { type: 'value', splitLine: { show: false } },
@@ -561,7 +559,6 @@
             ]
         });
 
-        // 月統計
         const commonXMonthly = { type: 'category', data: rawData.map(d => d.month), axisLabel: { fontSize: 10, color: '#64748b' } };
         const totals = rawData.map(d => categories.reduce((s, c) => s + d[c], 0));
         const startValueMonthly = Math.max(0, rawData.length - 6);
