@@ -7,132 +7,96 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         :root {
-            --primary: #3b82f6;
-            --bg: #f1f5f9;
-            --text: #1e293b;
-            --card-bg: #ffffff;
+            --primary: #3b82f6; --bg: #f1f5f9; --text: #1e293b; --card-bg: #ffffff;
             --header-dark: #1e293b;
+            --danger: #ef4444; --warning: #f59e0b; --success: #10b981;
         }
-
         * { box-sizing: border-box; }
-
-        body {
-            font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            padding: 10px;
-            color: var(--text);
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, var(--header-dark), #334155);
-            padding: 20px;
-            border-radius: 12px;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); -webkit-font-smoothing: antialiased; }
+        .container { width: 100%; max-width: 1200px; margin: 0 auto; }
+        
+        .header { text-align: center; margin-bottom: 15px; background: linear-gradient(135deg, var(--header-dark), #334155); padding: 20px; border-radius: 12px; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .header h1 { margin: 0; font-size: 20px; letter-spacing: 1px; }
         .loading-text { margin-top: 8px; font-size: 13px; color: #cbd5e1; }
 
-        /* 戰情分析卡 */
-        .analysis-section {
-            background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 6px solid #ccc; transition: all 0.3s ease;
-        }
-        
-        /* [修正] 標題區塊：對齊設定 */
-        .analysis-title { 
-            font-size: 16px; 
-            font-weight: bold; 
-            margin-bottom: 10px; 
-            display: flex; 
-            align-items: center; /* 垂直置中 */
-            justify-content: space-between; 
-            gap: 10px; /* 標題與燈號的間距 */
-        }
+        /* 營養指揮官 */
+        .nutrition-section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .nutri-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; border-left: 4px solid var(--warning); padding-left: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .base-info { font-size: 11px; color: #64748b; font-weight: normal; }
+        .nutri-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .n-btn { padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; cursor: pointer; text-align: center; transition: all 0.2s; }
+        .n-btn h3 { margin: 0 0 4px; font-size: 14px; }
+        .n-btn p { margin: 0; font-size: 10px; color: #64748b; }
+        .n-btn.active { border-color: transparent; color: white; transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .n-btn.active p { color: rgba(255,255,255,0.8); }
+        .btn-high { border-bottom: 3px solid var(--danger); } .btn-high.active { background: var(--danger); }
+        .btn-mid { border-bottom: 3px solid var(--warning); } .btn-mid.active { background: var(--warning); }
+        .btn-low { border-bottom: 3px solid var(--success); } .btn-low.active { background: var(--success); }
+        .nutri-result { background: #f0f9ff; padding: 15px; border-radius: 8px; display: none; animation: fadeIn 0.3s; }
+        .nutri-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; border-bottom: 1px solid #e0f2fe; padding-bottom: 15px; }
+        .n-metric label { font-size: 11px; color: #64748b; display: block; }
+        .n-metric span { font-size: 18px; font-weight: bold; color: #0c4a6e; }
+        .n-metric small { font-size: 11px; color: #64748b; font-weight: normal; margin-left: 5px; }
+        .plate-guide { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .plate-item { background: white; padding: 8px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .plate-icon { font-size: 16px; }
+        .plate-text strong { display: block; color: #334155; font-size: 14px; }
+        .plate-text span { color: #64748b; font-size: 11px; }
+        .n-advice-box { background: #fff; padding: 10px; border-radius: 6px; font-size: 13px; color: #475569; line-height: 1.5; border-left: 3px solid #3b82f6; }
+        .n-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 5px; font-weight: bold; }
 
-        /* [修正] 狀態燈號：禁止換行，禁止壓縮 */
-        .analysis-status { 
-            padding: 4px 12px; 
-            border-radius: 20px; 
-            font-size: 12px; 
-            color: white; 
-            font-weight: bold; 
-            display: flex; 
-            align-items: center; 
-            gap: 6px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            white-space: nowrap; /* 關鍵：文字不換行 */
-            flex-shrink: 0;      /* 關鍵：空間不足時不縮小 */
-        }
-        .status-dot { width: 8px; height: 8px; background-color: white; border-radius: 50%; display: inline-block; }
+        /* 統一卡片樣式 */
+        .info-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .section-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         
+        .analysis-status { padding: 4px 12px; border-radius: 20px; font-size: 12px; color: white; font-weight: bold; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap; flex-shrink: 0; }
+        .status-dot { width: 8px; height: 8px; background-color: white; border-radius: 50%; display: inline-block; }
         .analysis-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         @media (min-width: 640px) { .analysis-grid { grid-template-columns: repeat(4, 1fr); } }
-        
         .metric-box { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; position: relative; }
         .metric-label { font-size: 11px; color: #64748b; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 4px; }
-        .info-icon {
-            width: 14px; height: 14px; background: #3b82f6; color: white;
-            border-radius: 50%; font-size: 10px; line-height: 14px; cursor: pointer; display: inline-block; font-weight: bold;
-        }
+        .info-icon { width: 16px; height: 16px; background: #3b82f6; color: white; border-radius: 50%; font-size: 11px; line-height: 16px; cursor: pointer; display: inline-block; font-weight: bold; }
         .metric-value { font-size: 16px; font-weight: bold; color: #334155; }
         .metric-unit { font-size: 10px; color: #94a3b8; }
-
         .advice-box { background: #f0f9ff; padding: 15px; border-radius: 8px; font-size: 14px; color: #0c4a6e; line-height: 1.5; }
 
         /* Modal */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6); z-index: 9999; justify-content: center; align-items: center;
-            backdrop-filter: blur(3px);
-        }
-        .modal-box {
-            background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        .modal-box { background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         .modal-title { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
         .modal-content { font-size: 14px; color: #475569; line-height: 1.6; text-align: left; }
         .modal-content ul { padding-left: 20px; margin: 10px 0; }
         .modal-content li { margin-bottom: 6px; }
-        .modal-btn { 
-            display: block; width: 100%; padding: 12px; margin-top: 20px; 
-            background: var(--primary); color: white; text-align: center; border-radius: 8px; 
-            border: none; font-weight: bold; cursor: pointer; font-size: 14px;
-        }
+        .modal-btn { display: block; width: 100%; padding: 12px; margin-top: 20px; background: var(--primary); color: white; text-align: center; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
 
-        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
         @media (min-width: 1024px) { .grid { grid-template-columns: 1fr 1fr; } }
         
         .chart-card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 380px; display: flex; flex-direction: column; }
         .chart-container { flex: 1; width: 100%; min-height: 0; }
-        
         h2 { font-size: 15px; margin: 0 0 10px; border-left: 4px solid var(--primary); padding-left: 10px; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
         select { font-size: 12px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; }
         
         .legend-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; margin-bottom: 5px; background: #f8fafc; padding: 6px 8px; border-radius: 4px; flex-wrap: wrap; gap: 5px; }
         .legend-group { display: flex; gap: 8px; align-items: center; }
         .legend-item { display: flex; align-items: center; white-space: nowrap; }
-
         .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; display: inline-block; }
         .dot-green { background: #dcfce7; border: 1px solid #10b981; }
         .dot-yellow { background: #fef9c3; border: 1px solid #f59e0b; }
         .dot-red { background: #fee2e2; border: 1px solid #ef4444; }
-
         .icon-bar { width: 10px; height: 8px; background: #1e293b; border-radius: 2px; margin-right: 3px; display: inline-block; }
         .icon-line-acwr { width: 10px; height: 2px; background: #f59e0b; margin-right: 3px; display: inline-block; position: relative; top: -1px; }
         .icon-line-acwr::after { content: ''; position: absolute; width: 4px; height: 4px; background: #fff; border: 1px solid #f59e0b; border-radius: 50%; top: -2px; left: 3px; }
         .icon-line-perf { width: 10px; height: 2px; background: #8b5cf6; margin-right: 3px; display: inline-block; position: relative; top: -1px; } 
         .icon-line-hrv { width: 10px; height: 2px; border-bottom: 2px dashed #ec4899; margin-right: 3px; display: inline-block; position: relative; top: -2px; } 
+        
+        .chart-helper-text {
+            font-size: 11px; color: #64748b; margin-bottom: 5px; background: #f8fafc;
+            padding: 5px; border-radius: 4px; display: flex; flex-wrap: wrap; gap: 8px;
+        }
+        .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 2px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -143,9 +107,68 @@
         <div id="loadingStatus" class="loading-text">正在連線 Google Sheets...</div>
     </div>
 
+    <!-- 營養指揮官 -->
+    <div class="info-card nutrition-section">
+        <div class="section-title nutri-header">
+            今日營養指揮官
+            <span class="base-info" id="userBaseInfo">讀取中...</span>
+        </div>
+        <div class="nutri-btns">
+            <div class="n-btn btn-high" onclick="updateNutrition('high', this)">
+                <h3>🔥 戰鬥模式</h3>
+                <p>格鬥 / 對練</p>
+            </div>
+            <div class="n-btn btn-mid" onclick="updateNutrition('mid', this)">
+                <h3>🏋️ 維持模式</h3>
+                <p>健身 / 技術</p>
+            </div>
+            <div class="n-btn btn-low" onclick="updateNutrition('low', this)">
+                <h3>🍃 燃脂模式</h3>
+                <p>Zone 2 / 休息</p>
+            </div>
+        </div>
+        <div id="nutriResult" class="nutri-result">
+            <div class="nutri-grid">
+                <div class="n-metric">
+                    <label>今日熱量目標</label>
+                    <span id="targetCal">--</span> kcal
+                </div>
+                <div class="n-metric">
+                    <label>蛋白質低消</label>
+                    <div><span id="targetProtein">--</span> g</div>
+                    <small id="foodSuggest">(--)</small>
+                </div>
+            </div>
+            <div class="plate-guide">
+                <div class="plate-item">
+                    <div class="plate-icon">🥩</div>
+                    <div class="plate-text">
+                        <strong>蛋白質 (每餐)</strong>
+                        <span>2 掌心 (固定)</span>
+                    </div>
+                </div>
+                <div class="plate-item">
+                    <div class="plate-icon">🥦</div>
+                    <div class="plate-text">
+                        <strong>蔬菜 (每餐)</strong>
+                        <span>1~2 拳頭 (固定)</span>
+                    </div>
+                </div>
+                <div class="plate-item" style="grid-column: span 2; background: #fffbe6;">
+                    <div class="plate-icon">🍚</div>
+                    <div class="plate-text">
+                        <strong id="plateCarbTitle">碳水策略</strong>
+                        <span id="plateCarbDesc">--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="n-advice-box" id="targetAdvice">--</div>
+        </div>
+    </div>
+
     <!-- 本週戰情分析卡 -->
-    <div id="analysisCard" class="analysis-section" style="display:none;">
-        <div class="analysis-title">
+    <div id="analysisCard" class="info-card" style="display:none;">
+        <div class="section-title">
             <span id="analysisDate">本週狀況分析</span>
             <div id="analysisBadge" class="analysis-status">計算中</div>
         </div>
@@ -200,6 +223,17 @@
         </div>
         <div class="chart-card"><h2>訓練結構</h2><div id="chartStack" class="chart-container"></div></div>
         <div class="chart-card"><h2>訓練趨勢</h2><div id="chartTrend" class="chart-container"></div></div>
+        
+        <div class="chart-card" style="margin-bottom: 20px;">
+            <h2>體態趨勢</h2>
+            <div class="chart-helper-text">
+                <span><span class="legend-dot" style="background:#3b82f6"></span>肌肉量 (kg)</span>
+                <span><span class="legend-dot" style="background:#ef4444"></span>體脂率 (%)</span>
+                <span><span class="legend-dot" style="background:#333"></span>體重 (kg)</span>
+            </div>
+            <div id="chartBody" class="chart-container"></div>
+        </div>
+
         <div class="chart-card">
             <h2>訓練分析 <select id="pieMonthSelect"></select></h2>
             <div id="chartPie" class="chart-container"></div>
@@ -212,29 +246,19 @@
 
     let rawData = [];
     let weeklyData = [];
+    let bodyData = [];
+    let latestBodyStats = { bmr: 1800, weight: 80, date: '--' };
 
     const categories = ['武術', '格鬥', '對練', '健身', 'HIIT', 'Zone 2'];
     const colors = ['#F43F5E', '#2563EB', '#8B5CF6', '#F59E0B', '#0EA5E9', '#10B981'];
-    // 備用權重，月統計使用
+    // 備用權重
     const intensityWeights = { '武術': 1.0, '格鬥': 1.5, '健身': 1.2, '對練': 1.8, 'HIIT': 2.0, 'Zone 2': 0.8 };
     
     const infoData = {
-        'load': {
-            title: '本週負荷 (sRPE)',
-            content: `<p>來源：直接讀取 CSV 的 sRPE 欄位。</p><ul><li>這是你本週的總訓練壓力。</li><li>數值大小取決於你的訓練習慣 (2000-5000 AU 都有可能)。</li><li>重點是看<strong>趨勢</strong>：不要比上週突然暴增。</li></ul>`
-        },
-        'acwr': {
-            title: 'ACWR 風險係數',
-            content: `<ul><li><span style="color:#10b981">●</span> <strong>0.8 - 1.3</strong>：安全區。</li><li><span style="color:#f59e0b">●</span> <strong>1.3 - 1.5</strong>：警戒區。</li><li><span style="color:#ef4444">●</span> <strong>> 1.5</strong>：危險區。</li></ul>`
-        },
-        'hrv': {
-            title: 'HRV 狀態 (Readiness)',
-            content: `<ul><li><span style="color:#10b981">●</span> <strong>> 75%</strong>：狀態佳。</li><li><span style="color:#f59e0b">●</span> <strong>60% - 75%</strong>：微疲勞。</li><li><span style="color:#ef4444">●</span> <strong>< 60%</strong>：需休息。</li></ul>`
-        },
-        'tsb': {
-            title: '預測表現 (TSB)',
-            content: `<p>公式：體能 (長期) - 疲勞 (近期)。</p><ul><li><strong>負值</strong>：累積疲勞期 (正常訓練)。</li><li><strong>正值</strong>：比賽狀態 (巔峰)。</li></ul>`
-        }
+        'load': { title: '本週負荷 (sRPE)', content: `<p>數值來源：sRPE (時間×強度)。</p><ul><li>這是本週累積的總壓力。</li><li>避免單週暴衝 (>20%)。</li></ul>` },
+        'acwr': { title: 'ACWR 風險係數', content: `<ul><li><span style="color:#10b981">●</span> <strong>0.8 - 1.3</strong>：安全區。</li><li><span style="color:#f59e0b">●</span> <strong>1.3 - 1.5</strong>：警戒區。</li><li><span style="color:#ef4444">●</span> <strong>> 1.5</strong>：危險區。</li></ul>` },
+        'hrv': { title: 'HRV 狀態 (Readiness)', content: `<ul><li><span style="color:#10b981">●</span> <strong>> 75%</strong>：狀態佳。</li><li><span style="color:#f59e0b">●</span> <strong>60% - 75%</strong>：微疲勞。</li><li><span style="color:#ef4444">●</span> <strong>< 60%</strong>：需休息。</li></ul>` },
+        'tsb': { title: '預測表現 (TSB)', content: `<p>公式：體能 - 疲勞。</p><ul><li><strong>負值</strong>：累積疲勞期。</li><li><strong>正值</strong>：比賽巔峰狀態。</li></ul>` }
     };
 
     let charts = {};
@@ -243,6 +267,7 @@
         charts.load = echarts.init(document.getElementById('chartLoad'));
         charts.stack = echarts.init(document.getElementById('chartStack'));
         charts.trend = echarts.init(document.getElementById('chartTrend'));
+        charts.body = echarts.init(document.getElementById('chartBody'));
         charts.pie = echarts.init(document.getElementById('chartPie'));
         
         window.addEventListener('resize', () => Object.values(charts).forEach(c => c.resize()));
@@ -257,12 +282,73 @@
         document.getElementById('modalContent').innerHTML = infoData[type].content;
         modal.style.display = 'flex';
     }
-
     function closeInfo(e) {
         if (e.target.id === 'infoModal') document.getElementById('infoModal').style.display = 'none';
     }
     window.showInfo = showInfo;
     window.closeInfo = closeInfo;
+
+    function updateNutrition(mode, btn) {
+        document.querySelectorAll('.n-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const resultDiv = document.getElementById('nutriResult');
+        const elCal = document.getElementById('targetCal');
+        const elPro = document.getElementById('targetProtein');
+        const elFood = document.getElementById('foodSuggest');
+        const elAdvice = document.getElementById('targetAdvice');
+        const elPlateTitle = document.getElementById('plateCarbTitle');
+        const elPlateDesc = document.getElementById('plateCarbDesc');
+        
+        resultDiv.style.display = 'block';
+        
+        const bmr = latestBodyStats.bmr;
+        const weight = latestBodyStats.weight;
+        const proteinTarget = Math.round(weight * 2.0); 
+        const chickenAmount = Math.round((proteinTarget / 23) * 100);
+        
+        elPro.innerText = proteinTarget;
+        elFood.innerText = `(約 ${chickenAmount}g 雞胸肉)`;
+
+        let cal = 0;
+        let adviceHTML = "";
+
+        if (mode === 'high') {
+            cal = Math.round(bmr + 1000);
+            elPlateTitle.innerText = "高碳配置";
+            elPlateDesc.innerText = "每餐 2 捧 (一大碗飯)";
+            adviceHTML = `
+                <p><strong>🔥 戰鬥日策略：</strong></p>
+                <ul>
+                    <li>訓練中：<strong>必須加葡萄糖 (20g)</strong>。</li>
+                    <li>訓練後：吃吐司/豆漿，不吃堅果。</li>
+                </ul>`;
+        } else if (mode === 'mid') {
+            cal = Math.round(bmr + 500);
+            elPlateTitle.innerText = "中碳配置";
+            elPlateDesc.innerText = "每餐 1 捧 (半碗飯)";
+            adviceHTML = `
+                <p><strong>🏋️ 維持日策略：</strong></p>
+                <ul>
+                    <li>澱粉時機：集中在<strong>訓練前後</strong>。</li>
+                    <li>宵夜：無澱粉，只吃肉菜。</li>
+                </ul>`;
+        } else {
+            cal = Math.round(bmr * 1.2);
+            elPlateTitle.innerText = "低碳配置";
+            elPlateDesc.innerText = "0 捧 (不吃飯麵)";
+            adviceHTML = `
+                <p><strong>🍃 燃脂日策略：</strong></p>
+                <ul>
+                    <li>訓練中：<strong>只喝鹽水</strong>。</li>
+                    <li>整天：多吃肉、菜、好油。</li>
+                </ul>`;
+        }
+        
+        elCal.innerText = cal;
+        elAdvice.innerHTML = adviceHTML;
+    }
+    window.updateNutrition = updateNutrition;
 
     function fetchData() {
         const loadingEl = document.getElementById('loadingStatus');
@@ -275,14 +361,16 @@
                 return response.text();
             })
             .then(csvText => {
-                parseCSV_Optimized(csvText);
+                parseCSV_Full(csvText);
                 
                 if (weeklyData.length === 0 && rawData.length > 0) weeklyData = rawData.map(d => ({...d, load: 0}));
-
                 if (rawData.length === 0 && weeklyData.length === 0) throw new Error("無有效數據");
 
-                loadingEl.innerHTML = `✅ 數據已同步 (月紀錄:${rawData.length}筆 / 週紀錄:${weeklyData.length}筆)`;
+                loadingEl.innerHTML = `✅ 數據已同步`;
                 loadingEl.style.color = "#86efac";
+                
+                document.getElementById('userBaseInfo').innerText = `體重: ${latestBodyStats.weight}kg / BMR: ${latestBodyStats.bmr} (更新: ${latestBodyStats.date})`;
+                
                 updateUI();
             })
             .catch(error => {
@@ -301,48 +389,50 @@
         return null;
     }
 
-    function parseCSV_Optimized(text) {
+    function parseCSV_Full(text) {
         const lines = text.trim().split(/\r\n|\n/);
         
         let monthlyStartCol = -1;
-        let weeklyDateCol = -1;
-        let weeklyLoadCol = -1;
-        let readinessDateCol = -1;
-        let readinessValCol = -1;
+        let weeklyDateCol = -1; let weeklyLoadCol = -1;
+        let readinessDateCol = -1; let readinessValCol = -1;
+        let bodyDateCol = -1, bodyWeightCol = -1, bodyFatCol = -1, bodyMuscleCol = -1, bodyVisceralCol = -1, bodyBmrCol = -1, bodyDeviceCol = -1;
+        
         let headerRowIndex = -1;
         let headerRow = [];
 
-        for(let i=0; i<Math.min(10, lines.length); i++) {
+        for(let i=0; i<Math.min(15, lines.length); i++) {
             const row = lines[i].split(',').map(s => s.trim());
             
             if (monthlyStartCol === -1) {
                 const idx = row.indexOf('武術');
-                if (idx > -1) {
-                    monthlyStartCol = idx; 
-                    headerRowIndex = i;
-                    headerRow = row;
-                }
+                if (idx > -1) { monthlyStartCol = idx; headerRowIndex = i; headerRow = row; }
             }
-
             if (weeklyLoadCol === -1) {
                 const idx = row.findIndex(s => s.toLowerCase() === 'srpe');
-                if (idx > -1) {
-                    weeklyLoadCol = idx;
-                    weeklyDateCol = idx - 1;
-                }
+                if (idx > -1) { weeklyLoadCol = idx; weeklyDateCol = idx - 1; }
             }
-
             if (readinessValCol === -1) {
                 const idx = row.findIndex(s => s.toLowerCase().includes('readiness'));
+                if (idx > -1) { readinessValCol = idx; readinessDateCol = idx - 1; }
+            }
+            if (bodyWeightCol === -1) {
+                const idx = row.indexOf('體重');
                 if (idx > -1) {
-                    readinessValCol = idx;
-                    readinessDateCol = idx - 1;
+                    bodyWeightCol = idx;
+                    bodyDateCol = row.indexOf('日期', idx - 5); 
+                    if(bodyDateCol === -1) bodyDateCol = idx - 1;
+                    bodyFatCol = row.indexOf('體脂率');
+                    bodyMuscleCol = row.indexOf('肌肉量');
+                    bodyVisceralCol = row.indexOf('內臟脂肪');
+                    bodyBmrCol = row.indexOf('BMR');
+                    bodyDeviceCol = row.indexOf('測量機種');
                 }
             }
         }
 
         rawData = [];
         let tempWeekly = {};
+        bodyData = []; 
 
         let startRow = (headerRowIndex === -1) ? 1 : headerRowIndex + 1;
         
@@ -352,23 +442,15 @@
             if (monthlyStartCol > -1 && row[0] && row[0].trim().startsWith('20')) {
                 const mDate = row[0].trim();
                 let obj = { month: mDate };
-                
                 categories.forEach((cat) => {
                     let colIdx = -1;
                     for(let k=0; k < headerRow.length; k++) {
-                        if(headerRow[k] === cat) {
-                            if (weeklyDateCol === -1 || k < weeklyDateCol) {
-                                colIdx = k;
-                                break;
-                            }
+                        if(headerRow[k] === cat && (weeklyDateCol === -1 || k < weeklyDateCol)) {
+                            colIdx = k; break;
                         }
                     }
-                    if (colIdx > -1) {
-                        let val = row[colIdx];
-                        obj[cat] = val ? (parseInt(val) || 0) : 0;
-                    } else {
-                        obj[cat] = 0;
-                    }
+                    if (colIdx > -1) obj[cat] = row[colIdx] ? (parseInt(row[colIdx]) || 0) : 0;
+                    else obj[cat] = 0;
                 });
                 rawData.push(obj);
             }
@@ -399,10 +481,35 @@
                     }
                 }
             }
+
+            if (bodyDateCol > -1 && row[bodyDateCol]) {
+                const bDateRaw = row[bodyDateCol].trim();
+                if (bDateRaw.startsWith('20')) {
+                    let stdDate = getStandardDate(bDateRaw);
+                    if (stdDate) {
+                        let obj = {
+                            date: stdDate,
+                            weight: parseFloat(row[bodyWeightCol]) || 0,
+                            fat: parseFloat(row[bodyFatCol] ? row[bodyFatCol].replace('%','') : 0) || 0,
+                            muscle: parseFloat(row[bodyMuscleCol]) || 0,
+                            visceral: parseFloat(row[bodyVisceralCol]) || 0,
+                            bmr: parseInt(row[bodyBmrCol]) || 0,
+                            device: row[bodyDeviceCol] ? row[bodyDeviceCol].trim() : 'Unknown'
+                        };
+                        if (obj.weight > 0) bodyData.push(obj);
+                    }
+                }
+            }
         }
 
         weeklyData = Object.values(tempWeekly).sort((a, b) => new Date(a.month) - new Date(b.month));
         rawData.sort((a, b) => a.month.localeCompare(b.month));
+        
+        bodyData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        if (bodyData.length > 0) {
+            const last = bodyData[bodyData.length - 1];
+            latestBodyStats = { bmr: last.bmr, weight: last.weight, date: last.date };
+        }
     }
 
     function updateUI() {
@@ -432,79 +539,47 @@
         let startDate = new Date(latestDate);
         let endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
-        
-        // [修正] 日期邏輯：同一年只顯示月日 (2026/1/19 ~ 1/25)
-        let endStr = "";
-        if (startDate.getFullYear() === endDate.getFullYear()) {
-            endStr = `${endDate.getMonth() + 1}/${endDate.getDate()}`;
-        } else {
-            endStr = `${endDate.getFullYear()}/${endDate.getMonth() + 1}/${endDate.getDate()}`;
-        }
-        
+        let endStr = startDate.getFullYear() === endDate.getFullYear() ? `${endDate.getMonth() + 1}/${endDate.getDate()}` : `${endDate.getFullYear()}/${endDate.getMonth() + 1}/${endDate.getDate()}`;
         document.getElementById('analysisDate').innerText = `本週分析 (${latestDate} ~ ${endStr})`;
 
         boxLoad.innerText = Math.round(latestLoad);
         boxAcwr.innerText = latestACWR || '--';
         boxAcwr.style.color = latestACWR > 1.5 ? '#dc2626' : (latestACWR >= 1.3 ? '#d97706' : '#059669');
-        
         boxHrv.innerText = latestHRV ? latestHRV + '%' : '--';
-        if (latestHRV) {
-            boxHrv.style.color = latestHRV < 60 ? '#dc2626' : (latestHRV < 75 ? '#d97706' : '#059669');
-        }
-
+        if (latestHRV) boxHrv.style.color = latestHRV < 60 ? '#dc2626' : (latestHRV < 75 ? '#d97706' : '#059669');
         let tsbSign = latestTSB > 0 ? "+" : "";
         boxTsb.innerText = tsbSign + latestTSB;
         boxTsb.style.color = latestTSB >= 0 ? '#059669' : '#dc2626';
 
-        let status = "普通";
-        let color = "#475569"; 
-        let advice = "";
+        let status = "普通", color = "#475569", advice = "";
+        if (latestACWR > 1.3 && latestHRV && latestHRV < 65) { status = '<span class="status-dot"></span> 高風險'; color = "#dc2626"; advice = "<strong>⚠️ 警告：</strong>強度增加過快且恢復不佳。本週建議<strong>強制減量</strong>，避免受傷。"; }
+        else if (latestACWR > 1.3) { status = '<span class="status-dot"></span> 警戒中'; color = "#d97706"; advice = "<strong>💪 衝刺期：</strong>負荷較高，身體尚可支撐。請繼續訓練，但務必<strong>確保睡眠</strong>。"; }
+        else if (latestHRV && latestHRV < 60) { status = '<span class="status-dot"></span> 需恢復'; color = "#d97706"; advice = "<strong>🛌 身體亮紅燈：</strong>非訓練因素導致的疲勞。<strong>請休息，不要補練</strong>。"; }
+        else if (latestHRV && latestHRV >= 75) { status = '<span class="status-dot"></span> 狀態絕佳'; color = "#059669"; advice = "<strong>🚀 綠燈全開：</strong>適合挑戰<strong>高強度或大重量</strong>。"; }
+        else { status = '<span class="status-dot"></span> 穩定累積'; color = "#2563eb"; advice = "訓練與恢復平衡。維持目前節奏，穩紮穩打。"; }
 
-        if (latestACWR > 1.3 && latestHRV && latestHRV < 65) {
-            status = '<span class="status-dot"></span> 高風險'; color = "#dc2626";
-            advice = "<strong>⚠️ 警告：</strong>強度增加過快且恢復不佳。本週建議<strong>強制減量</strong>，避免受傷。";
-        } else if (latestACWR > 1.3) {
-            status = '<span class="status-dot"></span> 警戒中'; color = "#d97706";
-            advice = "<strong>💪 衝刺期：</strong>負荷較高，身體尚可支撐。請繼續訓練，但務必<strong>確保睡眠</strong>。";
-        } else if (latestHRV && latestHRV < 60) {
-            status = '<span class="status-dot"></span> 需恢復'; color = "#d97706";
-            advice = "<strong>🛌 身體亮紅燈：</strong>非訓練因素導致的疲勞。<strong>請休息，不要補練</strong>。";
-        } else if (latestHRV && latestHRV >= 75) {
-            status = '<span class="status-dot"></span> 狀態絕佳'; color = "#059669";
-            advice = "<strong>🚀 綠燈全開：</strong>身體電量充足。適合挑戰<strong>高強度或大重量</strong>。";
-        } else {
-            status = '<span class="status-dot"></span> 穩定累積'; color = "#2563eb";
-            advice = "訓練與恢復平衡。請維持目前節奏，專注技術，穩紮穩打。";
-        }
-
-        badge.innerHTML = status;
-        badge.style.backgroundColor = color;
-        card.style.borderLeftColor = color;
+        badge.innerHTML = status; badge.style.backgroundColor = color; 
         txtAdvice.innerHTML = advice;
     }
 
     function renderCharts() {
         const weeklyTimeline = weeklyData.map(d => d.month.split(' - ')[0]);
-        const acuteLoads = weeklyData.map(d => d.load); 
-
+        const acuteLoads = weeklyData.map(d => d.load);
         const chronicLoads = acuteLoads.map((val, idx) => {
             const startIdx = Math.max(0, idx - 3);
             const subset = acuteLoads.slice(startIdx, idx + 1);
             const sum = subset.reduce((a, b) => a + b, 0);
             return sum / subset.length;
         });
-
         const acwrData = acuteLoads.map((acute, idx) => {
             const chronic = chronicLoads[idx];
             if (chronic === 0) return 0;
             return parseFloat((acute / chronic).toFixed(2));
         });
-
         const tsbData = acuteLoads.map((acute, idx) => {
             const chronic = chronicLoads[idx];
             return Math.round(chronic - acute);
         });
-
         const readinessData = weeklyData.map(d => d.readiness);
 
         if (weeklyData.length > 0) {
@@ -514,48 +589,64 @@
 
         const startValueWeekly = Math.max(0, weeklyTimeline.length - 6);
 
+        // [修正] 負荷圖 grid: 使用 1% 極限擴展
         charts.load.setOption({
             tooltip: { 
-                trigger: 'axis', axisPointer: { type: 'line' },
-                formatter: function (params) {
-                    let date = params[0].name;
-                    let result = `<strong>${date}</strong> (週)<br/>`;
-                    params.forEach(p => {
-                        if (p.seriesName === '總負荷') result += `負荷: ${Math.round(p.value)}<br/>`;
-                        if (p.seriesName === 'ACWR') {
-                            let status = p.value > 1.5 ? "🔴" : (p.value >= 1.3 ? "🟡" : "🟢");
-                            result += `ACWR: ${p.value ?? '--'} ${status}<br/>`;
-                        }
-                        if (p.seriesName === '預測表現') {
-                            let sign = p.value > 0 ? "+" : "";
-                            let color = p.value >= 0 ? "green" : "red";
-                            result += `預測表現: <span style="color:${color}">${sign}${p.value}</span><br/>`;
-                        }
-                        if (p.seriesName === 'HRV') result += `HRV: ${p.value !== undefined ? p.value + '%' : '--'}<br/>`;
-                    });
-                    return result;
+                trigger: 'item', 
+                formatter: p => {
+                    let name = p.name;
+                    let val = p.value;
+                    if(p.seriesName === '總負荷') return `${name}<br/>${p.marker} 負荷: <strong>${val}</strong>`;
+                    if(p.seriesName === 'ACWR') return `${name}<br/>${p.marker} ACWR: <strong>${val}</strong>`;
+                    if(p.seriesName === '預測表現') return `${name}<br/>${p.marker} TSB: <strong>${val > 0 ? '+'+val : val}</strong>`;
+                    if(p.seriesName === 'HRV') return `${name}<br/>${p.marker} HRV: <strong>${val}%</strong>`;
+                    return `${name}<br/>${val}`;
                 }
             },
             legend: { show: false },
-            dataZoom: [
-                { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueWeekly, endValue: weeklyTimeline.length - 1, height: 20, bottom: 5, handleSize: '100%' },
-                { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true }
-            ],
-            // [修正] grid.right 改為 0%，配合 containLabel: false (我這裡稍微留 2% 避免太貼邊)
-            // 關鍵：containLabel: false 才能完全手動控制邊距
-            grid: { top: 30, bottom: 35, left: '14%', right: '2%', containLabel: false },
+            dataZoom: [ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueWeekly, endValue: weeklyTimeline.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
+            grid: { top: 30, bottom: 35, left: '1%', right: '1%', containLabel: true },
             xAxis: { type: 'category', data: weeklyTimeline, axisLabel: { fontSize: 10, color: '#64748b', showMaxLabel: true } },
-            yAxis: [
-                { type: 'value', splitLine: { show: false } },
-                { type: 'value', min: 0, max: 2.5, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }, axisLabel: { show: false } },
-                { type: 'value', min: 0, max: 100, show: false },
-                { type: 'value', splitLine: { show: false }, show: false }
-            ],
+            yAxis: [ { type: 'value', splitLine: { show: false } }, { type: 'value', min: 0, max: 2.5, show: false }, { type: 'value', min: 0, max: 100, show: false }, { type: 'value', show: false } ],
             series: [
                 { name: '總負荷', type: 'bar', data: acuteLoads, yAxisIndex: 0, emphasis: { focus: 'self' }, itemStyle: { color: '#1e293b', borderRadius: [4, 4, 0, 0] } },
-                { name: 'ACWR', type: 'line', yAxisIndex: 1, data: acwrData, smooth: true, symbolSize: 6, itemStyle: { color: '#f59e0b' }, lineStyle: { width: 3 }, markArea: { silent: true, data: [ [{ yAxis: 0.8, itemStyle: { color: 'rgba(16, 185, 129, 0.4)' } }, { yAxis: 1.3 }], [{ yAxis: 1.3, itemStyle: { color: 'rgba(245, 158, 11, 0.4)' } }, { yAxis: 1.5 }], [{ yAxis: 1.5, itemStyle: { color: 'rgba(239, 68, 68, 0.4)' } }, { yAxis: 3.0 }] ] } },
-                { name: '預測表現', type: 'line', yAxisIndex: 3, data: tsbData, smooth: true, showSymbol: false, lineStyle: { width: 2, color: '#8b5cf6' }, markLine: { silent: true, symbol: 'none', label: { show: false }, lineStyle: { type: 'solid', color: 'rgba(139, 92, 246, 0.5)', width: 1 }, data: [ { yAxis: 0 } ] }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [ { offset: 0, color: 'rgba(139, 92, 246, 0.3)' }, { offset: 1, color: 'rgba(139, 92, 246, 0)' } ]) } },
-                { name: 'HRV', type: 'line', yAxisIndex: 2, data: readinessData, smooth: true, symbol: 'circle', symbolSize: 4, connectNulls: true, itemStyle: { color: '#ec4899' }, lineStyle: { width: 2, type: 'dashed', color: '#ec4899' } }
+                { name: 'ACWR', type: 'line', yAxisIndex: 1, data: acwrData, smooth: true, itemStyle: { color: '#f59e0b' }, lineStyle: { width: 3 }, emphasis: { focus: 'self' }, markArea: { silent: true, data: [ [{ yAxis: 0.8, itemStyle: { color: 'rgba(16, 185, 129, 0.4)' } }, { yAxis: 1.3 }], [{ yAxis: 1.3, itemStyle: { color: 'rgba(245, 158, 11, 0.4)' } }, { yAxis: 1.5 }], [{ yAxis: 1.5, itemStyle: { color: 'rgba(239, 68, 68, 0.4)' } }, { yAxis: 3.0 }] ] } },
+                { name: '預測表現', type: 'line', yAxisIndex: 3, data: tsbData, smooth: true, showSymbol: false, lineStyle: { width: 2, color: '#8b5cf6' }, emphasis: { focus: 'self' }, markLine: { silent: true, symbol: 'none', lineStyle: { type: 'solid', color: 'rgba(139, 92, 246, 0.5)', width: 1 }, data: [ { yAxis: 0 } ] }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [ { offset: 0, color: 'rgba(139, 92, 246, 0.3)' }, { offset: 1, color: 'rgba(139, 92, 246, 0)' } ]) } },
+                { name: 'HRV', type: 'line', yAxisIndex: 2, data: readinessData, smooth: true, symbol: 'circle', symbolSize: 4, connectNulls: true, itemStyle: { color: '#ec4899' }, lineStyle: { width: 2, type: 'dashed', color: '#ec4899' }, emphasis: { focus: 'self' } }
+            ]
+        });
+
+        // [修正] 體態趨勢圖：全寬
+        const tanitaData = bodyData.filter(d => d.device.toUpperCase().includes('TANITA'));
+        const bodyDates = tanitaData.map(d => d.date);
+        
+        charts.body.setOption({
+            tooltip: { trigger: 'item', formatter: '{b}<br/>{a}: {c}' },
+            legend: { show: true, top: 0, type: 'scroll' },
+            grid: { top: 30, bottom: 20, left: '1%', right: '1%', containLabel: true },
+            dataZoom: [ { type: 'inside', xAxisIndex: [0] } ],
+            xAxis: { type: 'category', data: bodyDates, axisLabel: { fontSize: 10, color: '#64748b' } },
+            yAxis: [
+                { type: 'value', name: 'Kg', position: 'left', splitLine: { show: false } },
+                { type: 'value', name: '%', position: 'right', min: 10, max: 30, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } } }
+            ],
+            series: [
+                { 
+                    name: '肌肉量 (kg)', type: 'line', data: tanitaData.map(d => d.muscle), 
+                    smooth: true, itemStyle: { color: '#3b82f6' }, lineStyle: { width: 3 },
+                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(59,130,246,0.2)'}, {offset: 1, color: 'rgba(59,130,246,0)'}]) },
+                    emphasis: { focus: 'series' }
+                },
+                { 
+                    name: '體脂率 (%)', type: 'line', yAxisIndex: 1, data: tanitaData.map(d => d.fat), 
+                    smooth: true, itemStyle: { color: '#ef4444' }, lineStyle: { width: 2, type: 'dashed' },
+                    emphasis: { focus: 'series' }
+                },
+                { 
+                    name: '體重 (kg)', type: 'line', data: tanitaData.map(d => d.weight), 
+                    smooth: true, itemStyle: { color: '#333' }, lineStyle: { width: 1, type: 'dotted' },
+                    emphasis: { focus: 'series' }
+                }
             ]
         });
 
@@ -565,7 +656,7 @@
 
         charts.stack.setOption({
             color: colors, 
-            tooltip: { trigger: 'item', formatter: p => `${p.seriesName}<br/>${Math.floor(p.value/60)}h ${p.value%60}m` },
+            tooltip: { trigger: 'item', formatter: p => `${p.seriesName} (${p.name})<br/><strong>${Math.floor(p.value/60)}小時 ${p.value%60}分</strong>` },
             legend: { top: 0, type: 'scroll', data: categories },
             dataZoom: [ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueMonthly, endValue: rawData.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
             grid: { top: 40, bottom: 35, left: 35, right: 15, containLabel: true },
