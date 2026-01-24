@@ -48,7 +48,7 @@
             background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 6px solid #ccc; transition: all 0.3s ease;
         }
-        .analysis-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 5px; }
+        .analysis-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
         .analysis-status { 
             padding: 4px 12px; border-radius: 20px; font-size: 12px; color: white; font-weight: bold; 
             display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
@@ -58,11 +58,17 @@
         .analysis-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         @media (min-width: 640px) { .analysis-grid { grid-template-columns: repeat(4, 1fr); } }
         
-        .metric-box { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; }
-        .metric-label { font-size: 11px; color: #64748b; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .metric-box { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; position: relative; }
+        
+        /* [修正] 問號圖示樣式：改為藍色，更明顯 */
+        .metric-label { 
+            font-size: 11px; color: #64748b; margin-bottom: 2px; 
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
         .info-icon {
-            width: 14px; height: 14px; background: #cbd5e1; color: white;
-            border-radius: 50%; font-size: 10px; line-height: 14px; cursor: pointer; display: inline-block;
+            width: 16px; height: 16px; background: #3b82f6; color: white;
+            border-radius: 50%; font-size: 11px; line-height: 16px; cursor: pointer;
+            display: inline-block; font-weight: bold;
         }
         .metric-value { font-size: 16px; font-weight: bold; color: #334155; }
         .metric-unit { font-size: 10px; color: #94a3b8; }
@@ -72,21 +78,21 @@
         /* Modal */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;
-            backdrop-filter: blur(2px);
+            background: rgba(0, 0, 0, 0.6); z-index: 9999; justify-content: center; align-items: center;
+            backdrop-filter: blur(3px);
         }
         .modal-box {
-            background: white; width: 85%; max-width: 400px; padding: 20px; border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
         .modal-title { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
-        .modal-content { font-size: 14px; color: #475569; line-height: 1.6; }
-        .modal-content ul { padding-left: 20px; margin: 5px 0; }
-        .modal-content li { margin-bottom: 4px; }
+        .modal-content { font-size: 14px; color: #475569; line-height: 1.6; text-align: left; }
+        .modal-content ul { padding-left: 20px; margin: 10px 0; }
+        .modal-content li { margin-bottom: 6px; }
         .modal-btn { 
-            display: block; width: 100%; padding: 10px; margin-top: 15px; 
+            display: block; width: 100%; padding: 12px; margin-top: 20px; 
             background: var(--primary); color: white; text-align: center; border-radius: 8px; 
-            border: none; font-weight: bold; cursor: pointer; 
+            border: none; font-weight: bold; cursor: pointer; font-size: 14px;
         }
 
         .grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
@@ -130,20 +136,21 @@
         </div>
         <div class="analysis-grid">
             <div class="metric-box">
-                <div class="metric-label">本週負荷 <span class="info-icon" onclick="showInfo('load')">?</span></div>
+                <!-- [修正] 加上 onclick 事件與圖示 -->
+                <div class="metric-label" onclick="showInfo('load')">本週負荷 <span class="info-icon">?</span></div>
                 <div class="metric-value" id="valLoad">--</div>
             </div>
             <div class="metric-box">
-                <div class="metric-label">ACWR 風險 <span class="info-icon" onclick="showInfo('acwr')">?</span></div>
+                <div class="metric-label" onclick="showInfo('acwr')">ACWR 風險 <span class="info-icon">?</span></div>
                 <div class="metric-value" id="valAcwr">--</div>
             </div>
             <div class="metric-box">
-                <div class="metric-label">HRV 狀態 <span class="info-icon" onclick="showInfo('hrv')">?</span></div>
+                <div class="metric-label" onclick="showInfo('hrv')">HRV 狀態 <span class="info-icon">?</span></div>
                 <div class="metric-value" id="valHrv">--</div>
                 <div class="metric-unit">週平均</div>
             </div>
             <div class="metric-box">
-                <div class="metric-label">預測表現 <span class="info-icon" onclick="showInfo('tsb')">?</span></div>
+                <div class="metric-label" onclick="showInfo('tsb')">預測表現 <span class="info-icon">?</span></div>
                 <div class="metric-value" id="valTsb">--</div>
             </div>
         </div>
@@ -194,25 +201,50 @@
 
     const categories = ['武術', '格鬥', '對練', '健身', 'HIIT', 'Zone 2'];
     const colors = ['#F43F5E', '#2563EB', '#8B5CF6', '#F59E0B', '#0EA5E9', '#10B981'];
-    // 備用權重，月統計使用
     const intensityWeights = { '武術': 1.0, '格鬥': 1.5, '健身': 1.2, '對練': 1.8, 'HIIT': 2.0, 'Zone 2': 0.8 };
     
+    // [修正] 濃縮易懂的運動科學說明
     const infoData = {
         'load': {
             title: '本週負荷 (sRPE)',
-            content: `<p>來源：直接讀取 CSV 的 sRPE 欄位。</p><ul><li>這是你本週的總訓練壓力。</li><li>數值大小取決於你的訓練習慣 (2000-5000 AU 都有可能)。</li><li>重點是看<strong>趨勢</strong>：不要比上週突然暴增。</li></ul>`
+            content: `
+                <p>這是你本週「訓練總量」的成績單。</p>
+                <ul>
+                    <li><strong>如何解讀：</strong>數字越大，代表你練得越累。沒有標準值，只有「跟自己比」。</li>
+                    <li><strong>操作建議：</strong>
+                        <br>1. 不要像坐雲霄飛車 (忽高忽低)。
+                        <br>2. 應該像「爬樓梯」，每週慢慢增加，每 4 週安排一次休息週 (數值減半)。
+                    </li>
+                </ul>`
         },
         'acwr': {
-            title: 'ACWR 風險係數',
-            content: `<ul><li><span style="color:#10b981">●</span> <strong>0.8 - 1.3</strong>：安全區。</li><li><span style="color:#f59e0b">●</span> <strong>1.3 - 1.5</strong>：警戒區。</li><li><span style="color:#ef4444">●</span> <strong>> 1.5</strong>：危險區。</li></ul>`
+            title: 'ACWR (受傷風險)',
+            content: `
+                <p>這是在監控你「有沒有衝太快」。</p>
+                <ul>
+                    <li><span style="color:#10b981">●</span> <strong>綠燈 (0.8 - 1.3)</strong>：最棒的區間！你在變強，且很安全。</li>
+                    <li><span style="color:#f59e0b">●</span> <strong>黃燈 (1.3 - 1.5)</strong>：有點衝了，下週課表不要再加量。</li>
+                    <li><span style="color:#ef4444">●</span> <strong>紅燈 (> 1.5)</strong>：危險！你練得比平常多 50% 以上，韌帶容易斷掉，請立刻休息。</li>
+                </ul>`
         },
         'hrv': {
-            title: 'HRV 狀態 (Readiness)',
-            content: `<ul><li><span style="color:#10b981">●</span> <strong>> 75%</strong>：狀態佳。</li><li><span style="color:#f59e0b">●</span> <strong>60% - 75%</strong>：微疲勞。</li><li><span style="color:#ef4444">●</span> <strong>< 60%</strong>：需休息。</li></ul>`
+            title: 'HRV 狀態 (身體電量)',
+            content: `
+                <p>這是身體最誠實的「剩餘電量」指標。</p>
+                <ul>
+                    <li><span style="color:#10b981">●</span> <strong>> 75%</strong>：電量全滿。今天適合練最累的課表 (如對練、大重量)。</li>
+                    <li><span style="color:#f59e0b">●</span> <strong>60% - 75%</strong>：電量普通。可以練，但不要拚極限。</li>
+                    <li><span style="color:#ef4444">●</span> <strong>< 60%</strong>：沒電了。可能是壓力、熬夜或生病。<strong>嚴禁高強度訓練</strong>，去睡覺。</li>
+                </ul>`
         },
         'tsb': {
-            title: '預測表現 (TSB)',
-            content: `<p>公式：體能 (長期) - 疲勞 (近期)。</p><ul><li><strong>負值</strong>：累積疲勞期 (正常訓練)。</li><li><strong>正值</strong>：比賽狀態 (巔峰)。</li></ul>`
+            title: '預測表現 (體能儲備)',
+            content: `
+                <p>這是用數學算出來的「理論狀態」。</p>
+                <ul>
+                    <li><strong>負值 (水面下)</strong>：<strong>正常練功期</strong>。你現在身體帶著疲勞，雖然感覺累，但這是在累積經驗值。</li>
+                    <li><strong>正值 (水面上)</strong>：<strong>比賽爆發期</strong>。賽前一週減量休息後，這條線會衝高，代表疲勞消除，體能釋放，這時候上場打比賽最強！</li>
+                </ul>`
         }
     };
 
@@ -260,7 +292,6 @@
 
                 if (rawData.length === 0 && weeklyData.length === 0) throw new Error("無有效數據");
 
-                // [修正] 恢復顯示同步筆數
                 loadingEl.innerHTML = `✅ 數據已同步 (月紀錄:${rawData.length}筆 / 週紀錄:${weeklyData.length}筆)`;
                 loadingEl.style.color = "#86efac";
                 updateUI();
@@ -329,7 +360,6 @@
         for (let i = startRow; i < lines.length; i++) {
             const row = lines[i].split(',');
 
-            // 月數據
             if (monthlyStartCol > -1 && row[0] && row[0].trim().startsWith('20')) {
                 const mDate = row[0].trim();
                 let obj = { month: mDate };
@@ -354,7 +384,6 @@
                 rawData.push(obj);
             }
 
-            // 週數據
             if (weeklyDateCol > -1 && row[weeklyDateCol]) {
                 const wDateRaw = row[weeklyDateCol].trim();
                 if (wDateRaw.startsWith('20')) {
@@ -367,7 +396,6 @@
                 }
             }
 
-            // Readiness
             if (readinessDateCol > -1 && row[readinessDateCol]) {
                 const rDateRaw = row[readinessDateCol].trim();
                 if (rDateRaw.startsWith('20')) {
@@ -412,7 +440,6 @@
         
         card.style.display = 'block';
         
-        // [修正] 日期範圍計算
         let startDate = new Date(latestDate);
         let endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
@@ -517,8 +544,8 @@
                 { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueWeekly, endValue: weeklyTimeline.length - 1, height: 20, bottom: 5, handleSize: '100%' },
                 { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true }
             ],
-            // [修正] 使用像素單位設定 right，強制圖表撐開，消除留白
-            grid: { top: 30, bottom: 35, left: 10, right: 10, containLabel: true },
+            // [修正] 手動設定邊距，強制圖表撐開
+            grid: { top: 30, bottom: 35, left: '14%', right: '4%', containLabel: false },
             xAxis: { type: 'category', data: weeklyTimeline, axisLabel: { fontSize: 10, color: '#64748b', showMaxLabel: true } },
             yAxis: [
                 { type: 'value', splitLine: { show: false } },
