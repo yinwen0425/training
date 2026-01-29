@@ -619,7 +619,7 @@
         
         charts.body.setOption({
             // [修正] 改回 axis trigger (手指好點) + confine: true
-            tooltip: { trigger: 'axis', confine: true, formatter: '{b}<br/>{a0}: {c0}<br/>{a1}: {c1}<br/>{a2}: {c2}' },
+            tooltip: { trigger: 'item', confine: true, formatter: '{b}<br/>{a0}: {c0}' },
             legend: { show: true, top: 0, type: 'scroll' },
             grid: { top: 30, bottom: 20, left: '1%', right: '1%', containLabel: true },
             dataZoom: [ { type: 'inside', xAxisIndex: [0] } ],
