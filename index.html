@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>個人運動訓練數據儀表板</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥊</text></svg>">
     <style>
         :root {
             --primary: #3b82f6; --bg: #f1f5f9; --text: #1e293b; --card-bg: #ffffff;
@@ -46,6 +45,12 @@
         .n-metric span { font-size: 18px; font-weight: bold; color: #0c4a6e; }
         .n-advice-box { background: #fff; padding: 10px; border-radius: 6px; font-size: 13px; color: #475569; line-height: 1.5; border-left: 3px solid #3b82f6; margin-top: 10px; }
         .n-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 5px; font-weight: bold; }
+        
+        /* 飲料配方樣式 */
+        .drink-recipe { margin-bottom: 10px; padding: 10px; border-radius: 6px; font-size: 13px; }
+        .drink-item { margin-bottom: 4px; border-bottom: 1px dashed rgba(0,0,0,0.1); padding-bottom: 4px; }
+        .drink-item:last-child { border-bottom: none; margin-bottom: 0; }
+        .drink-name { font-weight: bold; display: inline-block; margin-right: 5px; color: #334155; }
 
         /* 蛋白質參考表 */
         .protein-ref {
@@ -277,6 +282,7 @@
     window.showInfo = showInfo;
     window.closeInfo = closeInfo;
 
+    // [修正] 飲料配方與水量調整
     function updateNutrition(mode, btn) {
         document.querySelectorAll('.n-btn').forEach(b => b.classList.remove('active'));
         if(btn) btn.classList.add('active');
@@ -303,15 +309,25 @@
         if (mode === 'high') {
             cal = Math.round(bmr + 1000);
             adviceHTML = `
-                <p><strong>🔥 戰鬥日策略 (高碳)：</strong></p>
+                <div class="drink-recipe" style="background:#fee2e2; border-left:3px solid #ef4444;">
+                    <strong>🥤 自製運動飲料 (1000cc)</strong><br>
+                    <div class="drink-item"><span class="drink-name">格鬥:</span> 葡萄糖30g+砂糖30g+低鈉鹽1.6g+檸檬40ml</div>
+                    <div class="drink-item"><span class="drink-name">HIIT:</span> 葡萄糖40g+砂糖10g+低鈉鹽1.2g+檸檬30ml</div>
+                </div>
+                <p><strong>🍽️ 戰鬥餐盤 (高碳)：</strong></p>
                 <ul>
-                    <li>訓練中：<strong>必須加葡萄糖 (20g)</strong>。</li>
-                    <li>訓練後：吃吐司/豆漿，不吃堅果。</li>
+                    <li>訓練前：吃足澱粉 (2捧飯)，少油脂。</li>
+                    <li>訓練後：立刻補充快碳 (吐司/豆漿)。</li>
                 </ul>`;
         } else if (mode === 'mid') {
             cal = Math.round(bmr + 500);
             adviceHTML = `
-                <p><strong>🏋️ 維持日策略 (中碳)：</strong></p>
+                <div class="drink-recipe" style="background:#fef3c7; border-left:3px solid #d97706;">
+                    <strong>🥤 自製運動飲料 (750cc)</strong><br>
+                    <div class="drink-item"><span class="drink-name">健身:</span> 葡萄糖38g+低鈉鹽0.8g+檸檬15ml</div>
+                    <div class="drink-item"><span class="drink-name">核心:</span> 葡萄糖8g+砂糖15g+低鈉鹽0.6g+檸檬23ml</div>
+                </div>
+                <p><strong>🍽️ 維持餐盤 (中碳)：</strong></p>
                 <ul>
                     <li>澱粉時機：集中在<strong>訓練前後</strong>。</li>
                     <li>宵夜：無澱粉，只吃肉菜。</li>
@@ -319,10 +335,14 @@
         } else {
             cal = Math.round(bmr * 1.2);
             adviceHTML = `
-                <p><strong>🍃 燃脂日策略 (低碳)：</strong></p>
+                <div class="drink-recipe" style="background:#dcfce7; border-left:3px solid #10b981;">
+                    <strong>🥤 自製運動飲料 (1000cc)</strong><br>
+                    <div class="drink-item"><span class="drink-name">Zone 2:</span> 低鈉鹽1.2g + 檸檬40ml (嚴禁糖)</div>
+                </div>
+                <p><strong>🍽️ 燃脂餐盤 (低碳)：</strong></p>
                 <ul>
-                    <li>澱粉減半 / 低 GI。多吃肉菜。</li>
-                    <li><span class="n-tag" style="background:#f1f5f9;color:#64748b">達標技巧</span>：飯後補堅果、全脂牛奶或起司補足熱量。</li>
+                    <li>每餐 0.5 捧低GI澱粉 (地瓜/糙米)。</li>
+                    <li>餓的話：多吃堅果、起司補熱量，不挨餓。</li>
                 </ul>`;
         }
         
@@ -610,7 +630,7 @@
                 { name: '總負荷', type: 'bar', data: acuteLoads, yAxisIndex: 0, emphasis: { focus: 'self' }, itemStyle: { color: '#1e293b', borderRadius: [4, 4, 0, 0] } },
                 { name: 'ACWR', type: 'line', yAxisIndex: 1, data: acwrData, smooth: true, itemStyle: { color: '#f59e0b' }, lineStyle: { width: 3 }, showSymbol: true, symbolSize: 10, emphasis: { focus: 'self' }, markArea: { silent: true, data: [ [{ yAxis: 0.8, itemStyle: { color: 'rgba(16, 185, 129, 0.4)' } }, { yAxis: 1.3 }], [{ yAxis: 1.3, itemStyle: { color: 'rgba(245, 158, 11, 0.4)' } }, { yAxis: 1.5 }], [{ yAxis: 1.5, itemStyle: { color: 'rgba(239, 68, 68, 0.4)' } }, { yAxis: 3.0 }] ] } },
                 { name: '預測表現', type: 'line', yAxisIndex: 3, data: tsbData, smooth: true, showSymbol: true, symbolSize: 10, lineStyle: { width: 2, color: '#8b5cf6' }, emphasis: { focus: 'self' }, markLine: { silent: true, symbol: 'none', lineStyle: { type: 'solid', color: 'rgba(139, 92, 246, 0.5)', width: 1 }, data: [ { yAxis: 0 } ] }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [ { offset: 0, color: 'rgba(139, 92, 246, 0.3)' }, { offset: 1, color: 'rgba(139, 92, 246, 0)' } ]) } },
-                { name: 'HRV', type: 'line', yAxisIndex: 2, data: readinessData, smooth: true, showSymbol: true, symbol: 'circle', symbolSize: 10, connectNulls: true, itemStyle: { color: '#ec4899' }, lineStyle: { width: 2, type: 'dashed', color: '#ec4899' }, emphasis: { focus: 'self' } }
+                { name: 'HRV', type: 'line', yAxisIndex: 2, data: readinessData, smooth: true, symbol: 'circle', symbolSize: 10, connectNulls: true, itemStyle: { color: '#ec4899' }, lineStyle: { width: 2, type: 'dashed', color: '#ec4899' }, emphasis: { focus: 'self' } }
             ]
         });
 
@@ -636,6 +656,7 @@
                     min: (value) => Math.floor(value.min - 5), // 自動緩衝
                     max: (value) => Math.ceil(value.max + 5)
                 },
+                // [修正] 隱藏的肌肉量軸，scale: true
                 { 
                     type: 'value', show: false, 
                     min: (value) => Math.floor(value.min - 1),
