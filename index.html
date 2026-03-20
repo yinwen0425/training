@@ -148,7 +148,6 @@
                 </div>
             </div>
             
-            <!-- 蛋白質換算表 -->
             <div class="protein-ref">
                 <div class="pro-item">🥩 豬/雞肉 (1掌) ≈ 22g</div>
                 <div class="pro-item">🥛 豆漿 (1盒) ≈ 14g</div>
@@ -219,7 +218,7 @@
         <div class="chart-card"><h2 class="chart-header">訓練趨勢</h2><div id="chartTrend" class="chart-container"></div></div>
         
         <div class="chart-card" style="margin-bottom: 20px;">
-            <!-- [修改] 標題加上機種下拉選單 -->
+            <!-- [修正] 加回機型選擇的下拉選單 -->
             <h2 class="chart-header">
                 體態趨勢
                 <select id="deviceSelect" onchange="updateBodyChart()">
@@ -251,7 +250,7 @@
     let latestBodyStats = { bmr: 1800, weight: 80, date: '--' };
 
     const categories =['武術', '格鬥', '對練', '健身', 'HIIT', 'Zone 2', '其它'];
-    const colors =['#F43F5E', '#2563EB', '#8B5CF6', '#F59E0B', '#0EA5E9', '#10B981', '#64748B'];
+    const colors =['#F43F5E', '#2563EB', '#8B5CF6', '#F59E0B', '#0EA5E9', '#10B981', '#94A3B8'];
     const intensityWeights = { '武術': 1.0, '格鬥': 1.5, '健身': 1.2, '對練': 1.8, 'HIIT': 2.0, 'Zone 2': 0.8, '其它': 1.0 };
     
     const infoData = {
@@ -285,8 +284,6 @@
     function closeInfo(e) {
         if (e.target.id === 'infoModal') document.getElementById('infoModal').style.display = 'none';
     }
-    window.showInfo = showInfo;
-    window.closeInfo = closeInfo;
 
     function updateNutrition(mode, btn) {
         document.querySelectorAll('.n-btn').forEach(b => b.classList.remove('active'));
@@ -354,7 +351,6 @@
         elCal.innerText = cal;
         elAdvice.innerHTML = adviceHTML;
     }
-    window.updateNutrition = updateNutrition;
 
     function fetchData() {
         const loadingEl = document.getElementById('loadingStatus');
@@ -550,7 +546,6 @@
         
         bodyData.sort((a, b) => new Date(a.date) - new Date(b.date));
         if (bodyData.length > 0) {
-            // [修正] 基礎資訊改用「最新一筆 (不管是哪一家)」
             const last = bodyData[bodyData.length - 1];
             latestBodyStats = { bmr: last.bmr, weight: last.weight, date: last.date };
         }
@@ -606,21 +601,18 @@
         txtAdvice.innerHTML = advice;
     }
 
-    // ★★★ [新增] 體態圖表切換邏輯 ★★★
+    // [新增] 體態圖表下拉選單切換邏輯
     function updateBodyChart() {
-        const deviceFilter = document.getElementById('deviceSelect').value; // 'INBODY' 或 'TANITA'
-        
-        // 篩選指定品牌的數據
+        const deviceFilter = document.getElementById('deviceSelect').value;
         const filteredData = bodyData.filter(d => d.device.toUpperCase().includes(deviceFilter));
         const bodyDates = filteredData.map(d => d.date);
 
-        // 使用 ECharts API 更新圖表資料，不改變外框設定
         charts.body.setOption({
             xAxis: { data: bodyDates },
             series:[
-                { data: filteredData.map(d => d.muscle) }, // index 0: 肌肉量
-                { data: filteredData.map(d => d.fat) },    // index 1: 體脂率
-                { data: filteredData.map(d => d.weight) }  // index 2: 體重
+                { data: filteredData.map(d => d.muscle) },
+                { data: filteredData.map(d => d.fat) },
+                { data: filteredData.map(d => d.weight) }
             ]
         });
     }
@@ -666,25 +658,25 @@
                 }
             },
             legend: { show: false },
-            dataZoom: [ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueWeekly, endValue: weeklyTimeline.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
+            dataZoom:[ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueWeekly, endValue: weeklyTimeline.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
             grid: { top: 30, bottom: 35, left: '14%', right: '0%', containLabel: false },
             xAxis: { type: 'category', data: weeklyTimeline, axisLabel: { fontSize: 10, color: '#64748b', showMaxLabel: true } },
             yAxis:[ { type: 'value', splitLine: { show: false } }, { type: 'value', min: 0, max: 2.5, show: false }, { type: 'value', min: 0, max: 100, show: false }, { type: 'value', show: false } ],
             series:[
-                { name: '總負荷', type: 'bar', data: acuteLoads, yAxisIndex: 0, emphasis: { focus: 'self' }, itemStyle: { color: '#1e293b', borderRadius: [4, 4, 0, 0] } },
+                { name: '總負荷', type: 'bar', data: acuteLoads, yAxisIndex: 0, emphasis: { focus: 'self' }, itemStyle: { color: '#1e293b', borderRadius:[4, 4, 0, 0] } },
                 { name: 'ACWR', type: 'line', yAxisIndex: 1, data: acwrData, smooth: true, itemStyle: { color: '#f59e0b' }, lineStyle: { width: 3 }, showSymbol: true, symbolSize: 10, emphasis: { focus: 'self' }, markArea: { silent: true, data: [[{ yAxis: 0.8, itemStyle: { color: 'rgba(16, 185, 129, 0.4)' } }, { yAxis: 1.3 }],[{ yAxis: 1.3, itemStyle: { color: 'rgba(245, 158, 11, 0.4)' } }, { yAxis: 1.5 }],[{ yAxis: 1.5, itemStyle: { color: 'rgba(239, 68, 68, 0.4)' } }, { yAxis: 3.0 }] ] } },
-                { name: '預測表現', type: 'line', yAxisIndex: 3, data: tsbData, smooth: true, showSymbol: true, symbolSize: 10, lineStyle: { width: 2, color: '#8b5cf6' }, emphasis: { focus: 'self' }, markLine: { silent: true, symbol: 'none', lineStyle: { type: 'solid', color: 'rgba(139, 92, 246, 0.5)', width: 1 }, data: [ { yAxis: 0 } ] }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1,[ { offset: 0, color: 'rgba(139, 92, 246, 0.3)' }, { offset: 1, color: 'rgba(139, 92, 246, 0)' } ]) } },
+                { name: '預測表現', type: 'line', yAxisIndex: 3, data: tsbData, smooth: true, showSymbol: true, symbolSize: 10, lineStyle: { width: 2, color: '#8b5cf6' }, emphasis: { focus: 'self' }, markLine: { silent: true, symbol: 'none', lineStyle: { type: 'solid', color: 'rgba(139, 92, 246, 0.5)', width: 1 }, data:[ { yAxis: 0 } ] }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1,[ { offset: 0, color: 'rgba(139, 92, 246, 0.3)' }, { offset: 1, color: 'rgba(139, 92, 246, 0)' } ]) } },
                 { name: 'HRV', type: 'line', yAxisIndex: 2, data: readinessData, smooth: true, showSymbol: true, symbol: 'circle', symbolSize: 10, connectNulls: true, itemStyle: { color: '#ec4899' }, lineStyle: { width: 2, type: 'dashed', color: '#ec4899' }, emphasis: { focus: 'self' } }
             ]
         });
 
-        // 體態趨勢圖：初始化時先畫出基礎框架與預設 InBody 資料
+        // 體態趨勢圖 (預設 INBODY)
         const initialFilteredData = bodyData.filter(d => d.device.toUpperCase().includes('INBODY'));
         const initialBodyDates = initialFilteredData.map(d => d.date);
         
         charts.body.setOption({
-            tooltip: { trigger: 'axis', confine: true, formatter: '{b}<br/>{a0}: {c0}<br/>{a1}: {c1}' },
-            legend: { show: false }, // [修改] 不用 Echarts 圖例，用 HTML 手刻的
+            tooltip: { trigger: 'axis', confine: true, formatter: '{b}<br/>{a0}: {c0}<br/>{a1}: {c1}<br/>{a2}: {c2}' },
+            legend: { show: true, top: 0, type: 'scroll' },
             grid: { top: 30, bottom: 20, left: '1%', right: '1%', containLabel: true },
             dataZoom:[ { type: 'inside', xAxisIndex: [0] } ],
             xAxis: { type: 'category', data: initialBodyDates, axisLabel: { fontSize: 10, color: '#64748b' } },
@@ -732,12 +724,18 @@
 
         charts.stack.setOption({
             color: colors, 
-            tooltip: { trigger: 'item', formatter: p => `${p.seriesName} (${p.name})<br/><strong>${Math.floor(p.value/60)}小時 ${p.value%60}分</strong>` },
+            tooltip: { 
+                trigger: 'item', 
+                formatter: function(p) {
+                    return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${p.color};margin-right:5px;"></span>` + 
+                           `${p.seriesName} (${p.name})<br/><strong>${Math.floor(p.value/60)}小時 ${p.value%60}分</strong>`;
+                }
+            },
             legend: { top: 0, type: 'scroll', data: categories },
-            dataZoom:[ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueMonthly, endValue: rawData.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
+            dataZoom:[ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueMonthly, endValue: rawData.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex:[0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
             grid: { top: 40, bottom: 35, left: '0%', right: '0%', containLabel: true },
             xAxis: commonXMonthly, yAxis: { type: 'value' },
-            series: categories.map((cat, ci) => ({ name: cat, type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: rawData.map((d, mi) => { let isTop = true; for(let k=ci+1; k<categories.length; k++) if(rawData[mi][categories[k]] > 0) { isTop = false; break; } return { value: d[cat], itemStyle: { borderRadius: (isTop && d[cat]>0) ? [4,4,0,0] : 0 } }; }), label: ci === categories.length - 1 ? { show: true, position: 'top', formatter: p => (totals[p.dataIndex]/60).toFixed(1)+'h', fontSize: 10, color: '#64748b' } : { show: false } }))
+            series: categories.map((cat, ci) => ({ name: cat, type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: rawData.map((d, mi) => { let isTop = true; for(let k=ci+1; k<categories.length; k++) if(rawData[mi][categories[k]] > 0) { isTop = false; break; } return { value: d[cat], itemStyle: { borderRadius: (isTop && d[cat]>0) ?[4,4,0,0] : 0 } }; }), label: ci === categories.length - 1 ? { show: true, position: 'top', formatter: p => (totals[p.dataIndex]/60).toFixed(1)+'h', fontSize: 10, color: '#64748b' } : { show: false } }))
         });
 
         // 趨勢圖
@@ -745,10 +743,13 @@
             color: colors,
             tooltip: { 
                 trigger: 'item', 
-                formatter: p => `${p.name}<br/>${p.marker} ${p.seriesName}: <strong>${Math.floor(p.value/60)}小時 ${p.value%60}分</strong>` 
+                formatter: function(p) {
+                    return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${p.color};margin-right:5px;"></span>` + 
+                           `${p.name}<br/>${p.seriesName}: <strong>${Math.floor(p.value/60)}小時 ${p.value%60}分</strong>`;
+                }
             },
             legend: { top: 0, type: 'scroll', data: categories },
-            dataZoom:[ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueMonthly, endValue: rawData.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
+            dataZoom:[ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueMonthly, endValue: rawData.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex:[0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
             grid: { top: 40, bottom: 35, left: '0%', right: '0%', containLabel: true },
             xAxis: { ...commonXMonthly, boundaryGap: false }, yAxis: { type: 'value' },
             series: categories.map((c, i) => ({ name: c, type: 'line', smooth: true, data: rawData.map(d => d[c]), emphasis: { focus: 'series', lineStyle: { width: 4 } } }))
@@ -761,8 +762,14 @@
         if(!d) return;
         charts.pie.setOption({
             color: colors,
-            tooltip: { trigger: 'item', formatter: p => `${p.name}<br/>${Math.floor(p.value/60)}時${p.value%60}分 (${p.percent}%)` },
-            series: [{ type: 'pie', radius: ['40%', '70%'], label: { show: true, formatter: '{b}\n{d}%' }, data: categories.map((c, i) => ({ name: c, value: d[c] })).filter(v => v.value > 0) }]
+            tooltip: { 
+                trigger: 'item', 
+                formatter: function(p) {
+                    return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${p.color};margin-right:5px;"></span>` + 
+                           `${p.name}<br/>${Math.floor(p.value/60)}時${p.value%60}分 (${p.percent}%)`;
+                }
+            },
+            series:[{ type: 'pie', radius: ['40%', '70%'], label: { show: true, formatter: '{b}\n{d}%' }, data: categories.map((c, i) => ({ name: c, value: d[c], itemStyle: { color: colors[i] } })).filter(v => v.value > 0) }]
         });
     }
 
