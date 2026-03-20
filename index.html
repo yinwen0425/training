@@ -219,7 +219,14 @@
         <div class="chart-card"><h2 class="chart-header">訓練趨勢</h2><div id="chartTrend" class="chart-container"></div></div>
         
         <div class="chart-card" style="margin-bottom: 20px;">
-            <h2 class="chart-header">體態趨勢</h2>
+            <!-- [修改] 標題加上機種下拉選單 -->
+            <h2 class="chart-header">
+                體態趨勢
+                <select id="deviceSelect" onchange="updateBodyChart()">
+                    <option value="INBODY">InBody</option>
+                    <option value="TANITA">TANITA</option>
+                </select>
+            </h2>
             <div class="chart-helper-text">
                 <span><span class="legend-dot" style="background:#3b82f6"></span>肌肉量 (kg)</span>
                 <span><span class="legend-dot" style="background:#ef4444"></span>體脂率 (%)</span>
@@ -239,12 +246,12 @@
     const YOUR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfKipyUTKtVPZ4HUcse4iJZjkD5fw_3HzmMgkCfi6UDphbjOZidlqMXFuGOhu0FiJCLzJcKtgt2Dqy/pub?gid=1055429386&single=true&output=csv';
 
     let rawData = [];
-    let weeklyData =[];
+    let weeklyData = [];
     let bodyData =[];
     let latestBodyStats = { bmr: 1800, weight: 80, date: '--' };
 
     const categories =['武術', '格鬥', '對練', '健身', 'HIIT', 'Zone 2', '其它'];
-    const colors =['#F43F5E', '#2563EB', '#8B5CF6', '#F59E0B', '#0EA5E9', '#10B981', '#94A3B8'];
+    const colors =['#F43F5E', '#2563EB', '#8B5CF6', '#F59E0B', '#0EA5E9', '#10B981', '#64748B'];
     const intensityWeights = { '武術': 1.0, '格鬥': 1.5, '健身': 1.2, '對練': 1.8, 'HIIT': 2.0, 'Zone 2': 0.8, '其它': 1.0 };
     
     const infoData = {
@@ -339,7 +346,7 @@
                 </div>
                 <p><strong>🍽️ 燃脂餐盤 (低碳)：</strong></p>
                 <ul>
-                    <li>全天：每餐 0.5 捧低GI澱粉 (地瓜/糙米)。</li>
+                    <li>每餐 0.5 捧低GI澱粉 (地瓜/糙米)。</li>
                     <li>餓的話：多吃堅果、起司補熱量，不挨餓。</li>
                 </ul>`;
         }
@@ -466,7 +473,7 @@
             }
         }
 
-        rawData = [];
+        rawData =[];
         let tempWeekly = {};
         bodyData =[]; 
 
@@ -543,6 +550,7 @@
         
         bodyData.sort((a, b) => new Date(a.date) - new Date(b.date));
         if (bodyData.length > 0) {
+            // [修正] 基礎資訊改用「最新一筆 (不管是哪一家)」
             const last = bodyData[bodyData.length - 1];
             latestBodyStats = { bmr: last.bmr, weight: last.weight, date: last.date };
         }
@@ -598,28 +606,43 @@
         txtAdvice.innerHTML = advice;
     }
 
+    // ★★★ [新增] 體態圖表切換邏輯 ★★★
+    function updateBodyChart() {
+        const deviceFilter = document.getElementById('deviceSelect').value; // 'INBODY' 或 'TANITA'
+        
+        // 篩選指定品牌的數據
+        const filteredData = bodyData.filter(d => d.device.toUpperCase().includes(deviceFilter));
+        const bodyDates = filteredData.map(d => d.date);
+
+        // 使用 ECharts API 更新圖表資料，不改變外框設定
+        charts.body.setOption({
+            xAxis: { data: bodyDates },
+            series:[
+                { data: filteredData.map(d => d.muscle) }, // index 0: 肌肉量
+                { data: filteredData.map(d => d.fat) },    // index 1: 體脂率
+                { data: filteredData.map(d => d.weight) }  // index 2: 體重
+            ]
+        });
+    }
+
     function renderCharts() {
         const weeklyTimeline = weeklyData.map(d => d.month.split(' - ')[0]);
-        const acuteLoads = weeklyData.map(d => d.load); 
-
+        const acuteLoads = weeklyData.map(d => d.load);
         const chronicLoads = acuteLoads.map((val, idx) => {
             const startIdx = Math.max(0, idx - 3);
             const subset = acuteLoads.slice(startIdx, idx + 1);
             const sum = subset.reduce((a, b) => a + b, 0);
             return sum / subset.length;
         });
-
         const acwrData = acuteLoads.map((acute, idx) => {
             const chronic = chronicLoads[idx];
             if (chronic === 0) return 0;
             return parseFloat((acute / chronic).toFixed(2));
         });
-
         const tsbData = acuteLoads.map((acute, idx) => {
             const chronic = chronicLoads[idx];
             return Math.round(chronic - acute);
         });
-
         const readinessData = weeklyData.map(d => d.readiness);
 
         if (weeklyData.length > 0) {
@@ -643,30 +666,28 @@
                 }
             },
             legend: { show: false },
-            dataZoom:[ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueWeekly, endValue: weeklyTimeline.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
+            dataZoom: [ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueWeekly, endValue: weeklyTimeline.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
             grid: { top: 30, bottom: 35, left: '14%', right: '0%', containLabel: false },
             xAxis: { type: 'category', data: weeklyTimeline, axisLabel: { fontSize: 10, color: '#64748b', showMaxLabel: true } },
             yAxis:[ { type: 'value', splitLine: { show: false } }, { type: 'value', min: 0, max: 2.5, show: false }, { type: 'value', min: 0, max: 100, show: false }, { type: 'value', show: false } ],
             series:[
-                { name: '總負荷', type: 'bar', data: acuteLoads, yAxisIndex: 0, emphasis: { focus: 'self' }, itemStyle: { color: '#1e293b', borderRadius:[4, 4, 0, 0] } },
+                { name: '總負荷', type: 'bar', data: acuteLoads, yAxisIndex: 0, emphasis: { focus: 'self' }, itemStyle: { color: '#1e293b', borderRadius: [4, 4, 0, 0] } },
                 { name: 'ACWR', type: 'line', yAxisIndex: 1, data: acwrData, smooth: true, itemStyle: { color: '#f59e0b' }, lineStyle: { width: 3 }, showSymbol: true, symbolSize: 10, emphasis: { focus: 'self' }, markArea: { silent: true, data: [[{ yAxis: 0.8, itemStyle: { color: 'rgba(16, 185, 129, 0.4)' } }, { yAxis: 1.3 }],[{ yAxis: 1.3, itemStyle: { color: 'rgba(245, 158, 11, 0.4)' } }, { yAxis: 1.5 }],[{ yAxis: 1.5, itemStyle: { color: 'rgba(239, 68, 68, 0.4)' } }, { yAxis: 3.0 }] ] } },
-                { name: '預測表現', type: 'line', yAxisIndex: 3, data: tsbData, smooth: true, showSymbol: true, symbolSize: 10, lineStyle: { width: 2, color: '#8b5cf6' }, emphasis: { focus: 'self' }, markLine: { silent: true, symbol: 'none', lineStyle: { type: 'solid', color: 'rgba(139, 92, 246, 0.5)', width: 1 }, data:[ { yAxis: 0 } ] }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1,[ { offset: 0, color: 'rgba(139, 92, 246, 0.3)' }, { offset: 1, color: 'rgba(139, 92, 246, 0)' } ]) } },
+                { name: '預測表現', type: 'line', yAxisIndex: 3, data: tsbData, smooth: true, showSymbol: true, symbolSize: 10, lineStyle: { width: 2, color: '#8b5cf6' }, emphasis: { focus: 'self' }, markLine: { silent: true, symbol: 'none', lineStyle: { type: 'solid', color: 'rgba(139, 92, 246, 0.5)', width: 1 }, data: [ { yAxis: 0 } ] }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1,[ { offset: 0, color: 'rgba(139, 92, 246, 0.3)' }, { offset: 1, color: 'rgba(139, 92, 246, 0)' } ]) } },
                 { name: 'HRV', type: 'line', yAxisIndex: 2, data: readinessData, smooth: true, showSymbol: true, symbol: 'circle', symbolSize: 10, connectNulls: true, itemStyle: { color: '#ec4899' }, lineStyle: { width: 2, type: 'dashed', color: '#ec4899' }, emphasis: { focus: 'self' } }
             ]
         });
 
-        // 體態趨勢圖：[變更] 確保各線顏色定義直接在 itemStyle (修復 tooltip 顏色遺失問題)
-        const tanitaData = bodyData.filter(d => d.device.toUpperCase().includes('TANITA'));
-        const bodyDates = tanitaData.map(d => d.date);
+        // 體態趨勢圖：初始化時先畫出基礎框架與預設 InBody 資料
+        const initialFilteredData = bodyData.filter(d => d.device.toUpperCase().includes('INBODY'));
+        const initialBodyDates = initialFilteredData.map(d => d.date);
         
         charts.body.setOption({
-            // 強制綁定顏色讓 tooltip 抓得到
-            color:['#333', '#ef4444', '#3b82f6'], 
-            tooltip: { trigger: 'axis', confine: true, formatter: '{b}<br/>{a0}: {c0}<br/>{a1}: {c1}<br/>{a2}: {c2}' },
-            legend: { show: true, top: 0, type: 'scroll' },
+            tooltip: { trigger: 'axis', confine: true, formatter: '{b}<br/>{a0}: {c0}<br/>{a1}: {c1}' },
+            legend: { show: false }, // [修改] 不用 Echarts 圖例，用 HTML 手刻的
             grid: { top: 30, bottom: 20, left: '1%', right: '1%', containLabel: true },
             dataZoom:[ { type: 'inside', xAxisIndex: [0] } ],
-            xAxis: { type: 'category', data: bodyDates, axisLabel: { fontSize: 10, color: '#64748b' } },
+            xAxis: { type: 'category', data: initialBodyDates, axisLabel: { fontSize: 10, color: '#64748b' } },
             yAxis:[
                 { 
                     type: 'value', name: 'Kg', position: 'left', splitLine: { show: false },
@@ -686,19 +707,19 @@
             ],
             series:[
                 { 
-                    name: '體重 (kg)', type: 'line', yAxisIndex: 0, data: tanitaData.map(d => d.weight), 
-                    smooth: true, showSymbol: true, symbolSize: 6, itemStyle: { color: '#333' }, lineStyle: { width: 2, type: 'solid' }, 
+                    name: '肌肉量 (kg)', type: 'line', yAxisIndex: 2, data: initialFilteredData.map(d => d.muscle), 
+                    smooth: true, showSymbol: true, symbolSize: 6, itemStyle: { color: '#3b82f6' }, lineStyle: { width: 3 },
+                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1,[{offset: 0, color: 'rgba(59,130,246,0.2)'}, {offset: 1, color: 'rgba(59,130,246,0)'}]) },
                     emphasis: { focus: 'series' }
                 },
                 { 
-                    name: '體脂率 (%)', type: 'line', yAxisIndex: 1, data: tanitaData.map(d => d.fat), 
+                    name: '體脂率 (%)', type: 'line', yAxisIndex: 1, data: initialFilteredData.map(d => d.fat), 
                     smooth: true, showSymbol: true, symbolSize: 6, itemStyle: { color: '#ef4444' }, lineStyle: { width: 2, type: 'dashed' },
                     emphasis: { focus: 'series' }
                 },
                 { 
-                    name: '肌肉量 (kg)', type: 'line', yAxisIndex: 2, data: tanitaData.map(d => d.muscle), 
-                    smooth: true, showSymbol: true, symbolSize: 6, itemStyle: { color: '#3b82f6' }, lineStyle: { width: 3 },
-                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1,[{offset: 0, color: 'rgba(59,130,246,0.2)'}, {offset: 1, color: 'rgba(59,130,246,0)'}]) },
+                    name: '體重 (kg)', type: 'line', yAxisIndex: 0, data: initialFilteredData.map(d => d.weight), 
+                    smooth: true, showSymbol: true, symbolSize: 6, itemStyle: { color: '#333' }, lineStyle: { width: 2, type: 'solid' }, 
                     emphasis: { focus: 'series' }
                 }
             ]
@@ -711,19 +732,12 @@
 
         charts.stack.setOption({
             color: colors, 
-            // [變更] 將 formatter 改為在 HTML 內部綁死顏色，確保 tooltip 顏色正確顯示
-            tooltip: { 
-                trigger: 'item', 
-                formatter: function(p) {
-                    return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${p.color};margin-right:5px;"></span>` + 
-                           `${p.seriesName} (${p.name})<br/><strong>${Math.floor(p.value/60)}小時 ${p.value%60}分</strong>`;
-                }
-            },
+            tooltip: { trigger: 'item', formatter: p => `${p.seriesName} (${p.name})<br/><strong>${Math.floor(p.value/60)}小時 ${p.value%60}分</strong>` },
             legend: { top: 0, type: 'scroll', data: categories },
-            dataZoom: [ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueMonthly, endValue: rawData.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex:[0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
+            dataZoom:[ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueMonthly, endValue: rawData.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
             grid: { top: 40, bottom: 35, left: '0%', right: '0%', containLabel: true },
             xAxis: commonXMonthly, yAxis: { type: 'value' },
-            series: categories.map((cat, ci) => ({ name: cat, type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: rawData.map((d, mi) => { let isTop = true; for(let k=ci+1; k<categories.length; k++) if(rawData[mi][categories[k]] > 0) { isTop = false; break; } return { value: d[cat], itemStyle: { borderRadius: (isTop && d[cat]>0) ?[4,4,0,0] : 0 } }; }), label: ci === categories.length - 1 ? { show: true, position: 'top', formatter: p => (totals[p.dataIndex]/60).toFixed(1)+'h', fontSize: 10, color: '#64748b' } : { show: false } }))
+            series: categories.map((cat, ci) => ({ name: cat, type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: rawData.map((d, mi) => { let isTop = true; for(let k=ci+1; k<categories.length; k++) if(rawData[mi][categories[k]] > 0) { isTop = false; break; } return { value: d[cat], itemStyle: { borderRadius: (isTop && d[cat]>0) ? [4,4,0,0] : 0 } }; }), label: ci === categories.length - 1 ? { show: true, position: 'top', formatter: p => (totals[p.dataIndex]/60).toFixed(1)+'h', fontSize: 10, color: '#64748b' } : { show: false } }))
         });
 
         // 趨勢圖
@@ -731,13 +745,10 @@
             color: colors,
             tooltip: { 
                 trigger: 'item', 
-                formatter: function(p) {
-                    return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${p.color};margin-right:5px;"></span>` + 
-                           `${p.name}<br/>${p.seriesName}: <strong>${Math.floor(p.value/60)}小時 ${p.value%60}分</strong>`;
-                }
+                formatter: p => `${p.name}<br/>${p.marker} ${p.seriesName}: <strong>${Math.floor(p.value/60)}小時 ${p.value%60}分</strong>` 
             },
             legend: { top: 0, type: 'scroll', data: categories },
-            dataZoom: [ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueMonthly, endValue: rawData.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex:[0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
+            dataZoom:[ { type: 'slider', show: true, xAxisIndex: [0], startValue: startValueMonthly, endValue: rawData.length - 1, height: 20, bottom: 5, handleSize: '100%' }, { type: 'inside', xAxisIndex: [0], zoomOnMouseWheel: false, moveOnMouseWheel: true } ],
             grid: { top: 40, bottom: 35, left: '0%', right: '0%', containLabel: true },
             xAxis: { ...commonXMonthly, boundaryGap: false }, yAxis: { type: 'value' },
             series: categories.map((c, i) => ({ name: c, type: 'line', smooth: true, data: rawData.map(d => d[c]), emphasis: { focus: 'series', lineStyle: { width: 4 } } }))
@@ -750,14 +761,8 @@
         if(!d) return;
         charts.pie.setOption({
             color: colors,
-            tooltip: { 
-                trigger: 'item', 
-                formatter: function(p) {
-                    return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${p.color};margin-right:5px;"></span>` + 
-                           `${p.name}<br/>${Math.floor(p.value/60)}時${p.value%60}分 (${p.percent}%)`;
-                }
-            },
-            series: [{ type: 'pie', radius: ['40%', '70%'], label: { show: true, formatter: '{b}\n{d}%' }, data: categories.map((c, i) => ({ name: c, value: d[c], itemStyle: { color: colors[i] } })).filter(v => v.value > 0) }]
+            tooltip: { trigger: 'item', formatter: p => `${p.name}<br/>${Math.floor(p.value/60)}時${p.value%60}分 (${p.percent}%)` },
+            series: [{ type: 'pie', radius: ['40%', '70%'], label: { show: true, formatter: '{b}\n{d}%' }, data: categories.map((c, i) => ({ name: c, value: d[c] })).filter(v => v.value > 0) }]
         });
     }
 
