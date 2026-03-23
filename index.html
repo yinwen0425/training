@@ -218,7 +218,6 @@
         <div class="chart-card"><h2 class="chart-header">訓練趨勢</h2><div id="chartTrend" class="chart-container"></div></div>
         
         <div class="chart-card" style="margin-bottom: 20px;">
-            <!-- [修正] 加回機型選擇的下拉選單 -->
             <h2 class="chart-header">
                 體態趨勢
                 <select id="deviceSelect" onchange="updateBodyChart()">
@@ -244,7 +243,7 @@
 <script>
     const YOUR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfKipyUTKtVPZ4HUcse4iJZjkD5fw_3HzmMgkCfi6UDphbjOZidlqMXFuGOhu0FiJCLzJcKtgt2Dqy/pub?gid=1055429386&single=true&output=csv';
 
-    let rawData = [];
+    let rawData =[];
     let weeklyData = [];
     let bodyData =[];
     let latestBodyStats = { bmr: 1800, weight: 80, date: '--' };
@@ -284,6 +283,8 @@
     function closeInfo(e) {
         if (e.target.id === 'infoModal') document.getElementById('infoModal').style.display = 'none';
     }
+    window.showInfo = showInfo;
+    window.closeInfo = closeInfo;
 
     function updateNutrition(mode, btn) {
         document.querySelectorAll('.n-btn').forEach(b => b.classList.remove('active'));
@@ -351,6 +352,7 @@
         elCal.innerText = cal;
         elAdvice.innerHTML = adviceHTML;
     }
+    window.updateNutrition = updateNutrition;
 
     function fetchData() {
         const loadingEl = document.getElementById('loadingStatus');
@@ -469,7 +471,7 @@
             }
         }
 
-        rawData =[];
+        rawData = [];
         let tempWeekly = {};
         bodyData =[]; 
 
@@ -591,17 +593,44 @@
         boxTsb.style.color = latestTSB >= 0 ? '#059669' : '#dc2626';
 
         let status = "普通", color = "#475569", advice = "";
-        if (latestACWR > 1.3 && latestHRV && latestHRV < 65) { status = '<span class="status-dot"></span> 高風險'; color = "#dc2626"; advice = "<strong>⚠️ 警告：</strong>強度增加過快且恢復不佳。本週建議<strong>強制減量</strong>，避免受傷。"; }
-        else if (latestACWR > 1.3) { status = '<span class="status-dot"></span> 警戒中'; color = "#d97706"; advice = "<strong>💪 衝刺期：</strong>負荷較高，身體尚可支撐。請繼續訓練，但務必<strong>確保睡眠</strong>。"; }
-        else if (latestHRV && latestHRV < 60) { status = '<span class="status-dot"></span> 需恢復'; color = "#d97706"; advice = "<strong>🛌 身體亮紅燈：</strong>非訓練因素導致的疲勞。<strong>請休息，不要補練</strong>。"; }
-        else if (latestHRV && latestHRV >= 75) { status = '<span class="status-dot"></span> 狀態絕佳'; color = "#059669"; advice = "<strong>🚀 綠燈全開：</strong>適合挑戰<strong>高強度或大重量</strong>。"; }
-        else { status = '<span class="status-dot"></span> 穩定累積'; color = "#2563eb"; advice = "訓練與恢復平衡。維持目前節奏，穩紮穩打。"; }
+        
+        // ★★★ 核心邏輯：加入週初特判 ★★★
+        let isEarlyWeek = latestLoad < 500;
+
+        if (latestTSB > 15 && latestHRV && latestHRV >= 60) {
+            status = '<span class="status-dot"></span> 比賽巔峰'; color = "#8b5cf6";
+            advice = "<strong>🏆 狀態滿檔：</strong>疲勞已大幅消除，體能儲備充沛。這是最適合上場作戰的黃金狀態！";
+        }
+        else if (latestACWR > 1.3 && latestHRV && latestHRV < 65) { 
+            status = '<span class="status-dot"></span> 高風險'; color = "#dc2626"; 
+            advice = "<strong>⚠️ 警告：</strong>強度增加過快且恢復不佳。本週建議<strong>強制減量</strong>，避免受傷。"; 
+        }
+        else if (latestACWR > 1.3) { 
+            status = '<span class="status-dot"></span> 警戒中'; color = "#d97706"; 
+            advice = "<strong>💪 衝刺期：</strong>負荷較高，身體尚可支撐。請繼續訓練，但務必<strong>確保睡眠</strong>。"; 
+        }
+        else if (latestHRV && latestHRV < 60) { 
+            status = '<span class="status-dot"></span> 需恢復'; color = "#d97706"; 
+            if (isEarlyWeek) {
+                advice = "<strong>🛌 身體亮紅燈：</strong>受上週疲勞或生活壓力(熬夜)影響，狀態極差。今日<strong>請安排休息或 Zone 1 散步</strong>，切勿硬拚。";
+            } else {
+                advice = "<strong>🛌 身體亮紅燈：</strong>本週訓練壓力已達極限。<strong>請立刻休息，不要再補練了</strong>。";
+            }
+        }
+        else if (latestHRV && latestHRV >= 75) { 
+            status = '<span class="status-dot"></span> 狀態絕佳'; color = "#059669"; 
+            advice = "<strong>🚀 綠燈全開：</strong>身體電量充足。適合挑戰<strong>高強度或大重量</strong>。"; 
+        }
+        else { 
+            status = '<span class="status-dot"></span> 穩定累積'; color = "#2563eb"; 
+            advice = "訓練與恢復平衡。維持目前節奏，穩紮穩打。"; 
+        }
 
         badge.innerHTML = status; badge.style.backgroundColor = color; 
+        card.style.borderLeftColor = color; // 同步卡片邊框顏色
         txtAdvice.innerHTML = advice;
     }
 
-    // [新增] 體態圖表下拉選單切換邏輯
     function updateBodyChart() {
         const deviceFilter = document.getElementById('deviceSelect').value;
         const filteredData = bodyData.filter(d => d.device.toUpperCase().includes(deviceFilter));
@@ -670,11 +699,11 @@
             ]
         });
 
-        // 體態趨勢圖 (預設 INBODY)
         const initialFilteredData = bodyData.filter(d => d.device.toUpperCase().includes('INBODY'));
         const initialBodyDates = initialFilteredData.map(d => d.date);
         
         charts.body.setOption({
+            color:['#333', '#ef4444', '#3b82f6'], 
             tooltip: { trigger: 'axis', confine: true, formatter: '{b}<br/>{a0}: {c0}<br/>{a1}: {c1}<br/>{a2}: {c2}' },
             legend: { show: true, top: 0, type: 'scroll' },
             grid: { top: 30, bottom: 20, left: '1%', right: '1%', containLabel: true },
@@ -699,9 +728,8 @@
             ],
             series:[
                 { 
-                    name: '肌肉量 (kg)', type: 'line', yAxisIndex: 2, data: initialFilteredData.map(d => d.muscle), 
-                    smooth: true, showSymbol: true, symbolSize: 6, itemStyle: { color: '#3b82f6' }, lineStyle: { width: 3 },
-                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1,[{offset: 0, color: 'rgba(59,130,246,0.2)'}, {offset: 1, color: 'rgba(59,130,246,0)'}]) },
+                    name: '體重 (kg)', type: 'line', yAxisIndex: 0, data: initialFilteredData.map(d => d.weight), 
+                    smooth: true, showSymbol: true, symbolSize: 6, itemStyle: { color: '#333' }, lineStyle: { width: 2, type: 'solid' }, 
                     emphasis: { focus: 'series' }
                 },
                 { 
@@ -710,14 +738,14 @@
                     emphasis: { focus: 'series' }
                 },
                 { 
-                    name: '體重 (kg)', type: 'line', yAxisIndex: 0, data: initialFilteredData.map(d => d.weight), 
-                    smooth: true, showSymbol: true, symbolSize: 6, itemStyle: { color: '#333' }, lineStyle: { width: 2, type: 'solid' }, 
+                    name: '肌肉量 (kg)', type: 'line', yAxisIndex: 2, data: initialFilteredData.map(d => d.muscle), 
+                    smooth: true, showSymbol: true, symbolSize: 6, itemStyle: { color: '#3b82f6' }, lineStyle: { width: 3 },
+                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1,[{offset: 0, color: 'rgba(59,130,246,0.2)'}, {offset: 1, color: 'rgba(59,130,246,0)'}]) },
                     emphasis: { focus: 'series' }
                 }
             ]
         });
 
-        // 月統計 (維持)
         const commonXMonthly = { type: 'category', data: rawData.map(d => d.month), axisLabel: { fontSize: 10, color: '#64748b' } };
         const totals = rawData.map(d => categories.reduce((s, c) => s + d[c], 0));
         const startValueMonthly = Math.max(0, rawData.length - 6);
@@ -738,7 +766,6 @@
             series: categories.map((cat, ci) => ({ name: cat, type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: rawData.map((d, mi) => { let isTop = true; for(let k=ci+1; k<categories.length; k++) if(rawData[mi][categories[k]] > 0) { isTop = false; break; } return { value: d[cat], itemStyle: { borderRadius: (isTop && d[cat]>0) ?[4,4,0,0] : 0 } }; }), label: ci === categories.length - 1 ? { show: true, position: 'top', formatter: p => (totals[p.dataIndex]/60).toFixed(1)+'h', fontSize: 10, color: '#64748b' } : { show: false } }))
         });
 
-        // 趨勢圖
         charts.trend.setOption({
             color: colors,
             tooltip: { 
